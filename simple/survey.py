@@ -7,6 +7,7 @@ import glob
 import os
 
 import numpy as np
+import healpy as hp
 
 import ugali.utils.healpix
 
@@ -57,3 +58,10 @@ class Survey():
         data = np.concatenate(data_array)
         return(data)
 
+    def get_neighbors(self, ra, dec):
+        """
+        Return center healpixel and 8 nearest neighbors for a given ra, dec pair.
+        """
+        pix_select = ugali.utils.healpix.angToPix(self.nside, ra, dec)
+        pix_neighbors = np.concatenate([[pix_select], hp.get_all_neighbours(self.nside, pix_select)])
+        return(pix_neighbors)

@@ -14,15 +14,15 @@ import simple.survey
 #----------------------------------------------------------
 
 def init_dirs(survey):
-    results_dir = os.path.join(os.getcwd(), survey.output.results_dir)
+    results_dir = os.path.join(os.getcwd(), survey.output['results_dir'])
     if not os.path.exists(results_dir):
         os.mkdir(results_dir)
 
-    log_dir = os.path.join(os.getcwd(), survey.output.log_dir)
+    log_dir = os.path.join(os.getcwd(), survey.output['log_dir'])
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
 
-    save_dir = os.path.join(os.getcwd(), survey.output.save_dir.)
+    save_dir = os.path.join(os.getcwd(), survey.output['save_dir'])
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 

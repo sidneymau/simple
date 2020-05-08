@@ -11,26 +11,26 @@ batch:
 
 survey: 'default' # parameter to change for runs across different data
 
-default:
-    mode : 0 # 0: real, 1: real+sim, 2: candidates
-    sim_population : None
-    sim_dir: None
-    nside          : 32
-    datadir        : '/home/s1/kadrlica/projects/y3a2/data/gold/v2.0/skim_gri_ext_0_3'
-    isoname: 'Bressan2012'
-    isosurvey: 'des'
-    object_list: 'object_list.csv'
-    candidate_list : 'candidate_list.fits'
-    mag_max : 24.5
+nside          : 32
+datadir        : '/home/s1/kadrlica/projects/y3a2/data/gold/v2.0/skim_gri_ext_0_3'
+isoname: 'Bressan2012'
+isosurvey: 'des'
+object_list: 'object_list.csv'
+candidate_list : 'candidate_list.fits'
+mag_max : 24.5
 
-    basis_1: 'RA'
-    basis_2: 'DEC'
+basis_1: 'RA'
+basis_2: 'DEC'
 
-    band_1: 'G'
-    band_2: 'R'
-    mag: 'SOF_PSF_MAG_CORRECTED_{}'
-    mag_err: 'SOF_PSF_MAG_ERR_{}'
-    mag_dered: 'MAG_DERED_{}'
+band_1: 'G'
+band_2: 'R'
+mag: 'SOF_PSF_MAG_CORRECTED_{}'
+mag_err: 'SOF_PSF_MAG_ERR_{}'
+mag_dered: 'MAG_DERED_{}'
 
-    fracdet_gz : None
-    fracdet : None
+fracdet_gz : None
+fracdet : None
+
+mode : 0 # 0: real, 1: real+sim, 2: candidates
+sim_population : None
+sim_dir: None

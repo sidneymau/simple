@@ -3,10 +3,6 @@
 """
 __author__ = "Sidney Mau"
 
-# Python libraries
-#import os
-#import yaml
-
 #----------------------------------------------------------
 
 class Survey():
@@ -41,22 +37,3 @@ class Survey():
         self.mag_err_2 = self.mag_err.format(self.band_2.upper())
         self.mag_dered_1 = self.mag_dered.format(self.band_1.upper())
         self.mag_dered_2 = self.mag_dered.format(self.band_2.upper())
-
-
-# The following should go in some initial setup
-#with open('config.yaml', 'r') as ymlfile:
-#    cfg = yaml.load(ymlfile)
-#    survey = simple.survey.Survey(cfg)
-
-#def init_dir():
-#    results_dir = os.path.join(os.getcwd(), cfg['output']['results_dir'])
-#    if not os.path.exists(results_dir):
-#        os.mkdir(results_dir)
-#
-#    log_dir = os.path.join(os.getcwd(), cfg['output']['log_dir'])
-#    if not os.path.exists(log_dir):
-#        os.mkdir(log_dir)
-#
-#    save_dir = os.path.join(os.getcwd(), cfg['output']['save_dir'])
-#    if not os.path.exists(save_dir):
-#        os.mkdir(save_dir)

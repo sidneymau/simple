@@ -3,23 +3,18 @@
 """
 __author__ = "Sidney Mau"
 
-# Python libraries
 import sys
 import os
 import glob
 import yaml
-from matplotlib import mlab
+import argparse
 import numpy as np
 import healpy as hp
-import astropy.io.fits as pyfits
 import fitsio as fits
-import argparse
 
-# Ugali libraries
 import ugali.utils.healpix
 import ugali.utils.projector
 
-# Simple binner modules
 import simple.filters
 import simple.simple_utils
 import simple.survey

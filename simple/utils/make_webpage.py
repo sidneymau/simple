@@ -5,6 +5,7 @@ Generating html
 __author__ = "Sidney Mau"
 
 import glob
+import subprocess
 import numpy as np
 import pandas as pd
 import yaml
@@ -13,7 +14,7 @@ import os
 import ugali.utils.projector
 import ugali.candidate.associate
 import simple.utils.filter_candidates
-import simple.utils.query_image
+#import simple.utils.query_image
 
 with open('config.yaml', 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
@@ -73,12 +74,24 @@ INDEX = """
 </html>
 """
 
+#TABLE = """
+#<table border="1" class="dataframe">
+#  <thead>
+#    <tr style="text-align: center;">
+#      <th>Candidate</th>
+#      <th>Image</th>
+#      <th>Diagnostic Plots</th>
+#    </tr>
+#  </thead>
+#  <tbody>
+#%(rows)s
+#  </tbody>
+#"""
 TABLE = """
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: center;">
       <th>Candidate</th>
-      <th>Image</th>
       <th>Diagnostic Plots</th>
     </tr>
   </thead>
@@ -87,13 +100,25 @@ TABLE = """
   </tbody>
 """
 
+
+#ROW = """
+#    <tr>
+#      <th>%(name)s</th>
+#      <td> <a id="%(fname)s"></a><a href="%(fname)s.png"><img src="%(fname)s.png" width="400"></a></td>
+#      <td> <a id="%(fname)s"></a><a href="%(fname)s.png"><img src="%(fname)s.png"></a></td>
+#    </tr>  
+#"""
 ROW = """
     <tr>
       <th>%(name)s</th>
-      <td> <a id="%(fname)s"></a><a href="%(fname)s.png"><img src="%(fname)s.png" width="400"></a></td>
       <td> <a id="%(fname)s"></a><a href="%(fname)s.png"><img src="%(fname)s.png"></a></td>
     </tr>  
 """
+
+catalog_array = ['McConnachie15', 'Harris96', 'Corwen04', 'Nilson73', 'Webbink85', 'Kharchenko13', 'WEBDA14','ExtraDwarfs','ExtraClusters']
+catalog = ugali.candidate.associate.SourceCatalog()
+for catalog_name in catalog_array:
+    catalog += ugali.candidate.associate.catalogFactory(catalog_name)
 
 def find_name(candidate):
     # Name
@@ -102,10 +127,6 @@ def find_name(candidate):
     except: # simple
         # Check for possible associations
         glon_peak, glat_peak = ugali.utils.projector.celToGal(candidate['RA'], candidate['DEC'])
-        catalog_array = ['McConnachie15', 'Harris96', 'Corwen04', 'Nilson73', 'Webbink85', 'Kharchenko13', 'WEBDA14','ExtraDwarfs','ExtraClusters']
-        catalog = ugali.candidate.associate.SourceCatalog()
-        for catalog_name in catalog_array:
-            catalog += ugali.candidate.associate.catalogFactory(catalog_name)
     
         idx1, idx2, sep = catalog.match(glon_peak, glat_peak, tol=0.5, nnearest=1)
         match = catalog[idx2]
@@ -116,6 +137,7 @@ def find_name(candidate):
     
     association_string = str(np.char.strip(association_string))
     association_string = repr(association_string)
+    #association_string = 'null'
 
     return(association_string)
 
@@ -139,6 +161,9 @@ def create_entry(candidate):
     #dist    =
     #use astropy to convert
     #how to get distance?
+    glon, glat = ugali.utils.projector.celToGal(ra, dec)
+    glon = round(glon, 2)
+    glat = round(glat, 2)
     
     candidate_file = 'candidate_{:0.2f}_{:0.2f}.png'.format(ra, dec)
     plot = '{}/{}'.format(save_dir, candidate_file)
@@ -151,31 +176,39 @@ def create_entry(candidate):
         #batch = 'csub -n {} -o {} --host all '.format(jobs, logfile) # testing condor updates
         batch = 'csub -n {} -o {} '.format(jobs, logfile) # testing condor updates
         if 'N_MODEL' in candidate_list.dtype.names:
-            command = 'python {}/plotting/web_plot.py {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.4f}'.format(simple_dir, ra, dec, mod, sig, mc_source_id, field_density)
+            command = 'python {}/plotting/new_plot.py {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.4f}'.format(simple_dir, ra, dec, mod, sig, mc_source_id, field_density)
         else:
-            command = 'python {}/plotting/web_plot.py {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.2f}'.format(simple_dir, ra, dec, mod, sig, mc_source_id)
+            command = 'python {}/plotting/new_plot.py {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.2f}'.format(simple_dir, ra, dec, mod, sig, mc_source_id)
         command_queue = batch + command
 
         print(command_queue)
-        os.system(command_queue) # Submit to queue
+        #os.system(command_queue) # Submit to queue
+        subprocess.call(command_queue.split(' '), shell=False)
 
-    image_file = 'image_{:0.2f}_{:0.2f}.png'.format(ra, dec)
-    #if image_file not in plots:
-    #    print('Image not found; retrieving image for {}'.format(name))
-    #    image_url = simple.utils.query_image.retrieve_image(image_file, ra, dec, survey)
-    print('Retrieving image for {}'.format(name))
-    image_url = simple.utils.query_image.retrieve_image(image_file, ra, dec, survey)
-    image = '{}/{}'.format(save_dir, image_file)
-    image_name = image.strip('.png')
+    #image_file = 'image_{:0.2f}_{:0.2f}.png'.format(ra, dec)
+    ##if image_file not in plots:
+    ##    print('Image not found; retrieving image for {}'.format(name))
+    ##    image_url = simple.utils.query_image.retrieve_image(image_file, ra, dec, survey)
+    #print('Retrieving image for {}'.format(name))
+    #image_url = simple.utils.query_image.retrieve_image(image_file, ra, dec, survey)
+    #image = '{}/{}'.format(save_dir, image_file)
+    #image_name = image.strip('.png')
 
+    #tablerow = ROW%dict(name=plot.strip('.png'), fname=save_dir+'/'+plot.strip('.png'))
+    #tablerow = """
+    #    <tr>
+    #      <th>{}<br>sig = {}<br>(RA, Dec) = ({}, {})<br>mod = {}</th>
+    #      <td> <a id={}></a><a href={}><img src={} width="200"></a></td>
+    #      <td> <a id={}></a><a href={}><img src={} width="1000"></a></td>
+    #    </tr>  
+    #""".format(name, sig, ra, dec, mod, image_name, image_url, image, fname, plot, plot)
     tablerow = ROW%dict(name=plot.strip('.png'), fname=save_dir+'/'+plot.strip('.png'))
     tablerow = """
         <tr>
-          <th>{}<br>sig = {}<br>(RA, Dec) = ({}, {})<br>mod = {}</th>
-          <td> <a id={}></a><a href={}><img src={} width="200"></a></td>
+          <th>{}<br>sig = {}<br>(RA, Dec) = ({}, {})<br>(l, b) = ({}, {})<br>mod = {}</th>
           <td> <a id={}></a><a href={}><img src={} width="1000"></a></td>
         </tr>  
-    """.format(name, sig, ra, dec, mod, image_name, image_url, image, fname, plot, plot)
+    """.format(name, sig, ra, dec, glon, glat, mod, fname, plot, plot)
 
     return(tablerow)
 

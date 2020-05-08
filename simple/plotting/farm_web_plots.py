@@ -45,8 +45,8 @@ except:
 
 print('Plotting hotspots with sig > {}'.format(sig_cut))
 
-#candidate_list = fits.read(candidate_list)
-candidate_list = np.load(candidate_list)
+candidate_list = fits.read(candidate_list)
+#candidate_list = np.load(candidate_list)
 try: # simple
     candidate_list = candidate_list[candidate_list['SIG'] > sig_cut]
 except: # ugali
@@ -84,4 +84,5 @@ for candidate in candidate_list:
     #print(command)
     #os.system(command)
     print(command_queue)
-    os.system(command_queue) # Submit to queue
+    #os.system(command_queue) # Submit to queue
+    subprocess.call(command_queue.split(' '), shell=False)

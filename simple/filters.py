@@ -52,6 +52,15 @@ def quality_filter(survey, data):
             #& (data['SEXTRACTOR_FLAGS_G'] < 4) \
             #& (data['SEXTRACTOR_FLAGS_R'] < 4)
             #& ((data['PSF_MAG_SFD_G'] - data['PSF_MAG_SFD_R']) < 1.)
+    elif survey == 'delve':
+        #sel = (data['PSF_MAG_SFD_G'] < 25)
+        #sel = (data[mag_g] < 25)
+        sel = (data['WAVG_MAG_PSF_G'] < mag_max) \
+            & (data['MAG_PSF_G'] < 90) \
+            & (data['MAG_PSF_I'] < 90)
+            #& (data['SEXTRACTOR_FLAGS_G'] < 4) \
+            #& (data['SEXTRACTOR_FLAGS_R'] < 4)
+            #& ((data['PSF_MAG_SFD_G'] - data['PSF_MAG_SFD_R']) < 1.)
     elif survey == 'maglites':
         sel = (data['PSF_MAG_SFD_G'] < mag_max) \
             & (data['SEXTRACTOR_FLAGS_G'] < 4) \
@@ -77,6 +86,7 @@ def quality_filter(survey, data):
         #    #& (data['GFPSFMAG'] < 22.5) # observed magnitude - not extinction corrected
         #    #& (data['GINFOFLAG'] >= 0) # recommended by Alex; untested yet
         sel = (data['RFPSFMAGERR'] < 0.1) # replacing (data['GFPSFMAG'] < 22.5) after Keith's investigations
+        #sel = True
     elif survey == 'decals':
         sel = True
     return sel
@@ -90,6 +100,9 @@ def star_filter(survey, data):
         sel = (data['EXTENDED_CLASS_MASH'] >= 0) \
             & (data['EXTENDED_CLASS_MASH'] <= 2)
     elif survey == 'bliss':
+        #sel = (data['CM_T'] < 0.003 + data['CM_T_ERR'])
+        sel = (data['WAVG_SPREAD_MODEL_G'] < 0.003 + data['SPREADERR_MODEL_G'])
+    elif survey == 'delve':
         #sel = (data['CM_T'] < 0.003 + data['CM_T_ERR'])
         sel = (data['WAVG_SPREAD_MODEL_G'] < 0.003 + data['SPREADERR_MODEL_G'])
     elif survey == 'maglites':
@@ -114,6 +127,9 @@ def galaxy_filter(survey, data):
     elif survey == 'bliss':
         #sel = (data['CM_T'] > 0.003 + data['CM_T_ERR']) # 0.005?
         sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
+    elif survey == 'delve':
+        #sel = (data['CM_T'] > 0.003 + data['CM_T_ERR']) # 0.005?
+        sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
     elif survey == 'maglites':
         sel = (data['CM_T'] > 0.003 + data['CM_T_ERR']) # 0.005?
     elif survey == 'panstarrs':
@@ -131,6 +147,8 @@ def color_filter(survey, data):
     elif survey == 'y3a2':
         sel = ((data['PSF_MAG_SFD_G'] - data['PSF_MAG_SFD_R']) < 0.4) # 0.2
     elif survey == 'bliss':
+        sel = ((data[mag_1] - data[mag_2]) < 0.4) # 0.2
+    elif survey == 'delve':
         sel = ((data[mag_1] - data[mag_2]) < 0.4) # 0.2
     elif survey == 'maglites':
         sel = ((data[mag_1] - data[mag_2]) < 0.4) # 0.2
@@ -162,9 +180,19 @@ def dered_mag(survey, data):
         #data = numpy.lib.recfunctions.append_fields(data, [mag_g, mag_r], [data['PSF_MAG_SFD_G'], data['PSF_MAG_SFD_R']], 
         #                                            usemask=False, asrecarray=True)
         #data = ugali.utils.mlab.rec_append_fields(data, [mag_g, mag_r], [data['PSF_MAG_SFD_G'], data['PSF_MAG_SFD_R']])
+    elif survey == 'delve':
+        #data = mlab.rec_append_fields(data, [mag_g, mag_r], [data['CM_MAG_G'] - data['EXINCTION_G'], data['CM_MAG_R'] - data['EXTINCTION_R']])
+        #data = mlab.rec_append_fields(data, [mag_g, mag_r], [data['WAVG_MAG_PSF_G'], data['WAVG_MAG_PSF_R']])
+        #data = mlab.rec_append_fields(data, [mag_g, mag_r], [data['MAG_PSF_SFD_G'], data['MAG_PSF_SFD_R']])
+        #data = numpy.lib.recfunctions.append_fields(data, [mag_dered_1, mag_dered_2], [data[mag_1], data[mag_2]], usemask=False, asrecarray=True)
+        data = numpy.lib.recfunctions.append_fields(data, [mag_dered_1, mag_dered_2], [data['WAVG_MAG_PSF_G'] - data['EXTINCTION_G'], data['WAVG_MAG_PSF_I'] - data['EXTINCTION_I']], usemask=False, asrecarray=True)
+        #data = mlab.rec_append_fields(data, [mag_g, mag_r], [data['PSF_MAG_SFD_G'], data['PSF_MAG_SFD_R']])
+        #data = numpy.lib.recfunctions.append_fields(data, [mag_g, mag_r], [data['PSF_MAG_SFD_G'], data['PSF_MAG_SFD_R']], 
+        #                                            usemask=False, asrecarray=True)
+        #data = ugali.utils.mlab.rec_append_fields(data, [mag_g, mag_r], [data['PSF_MAG_SFD_G'], data['PSF_MAG_SFD_R']])
     elif survey == 'maglites':
         #data = mlab.rec_append_fields(data, [mag_g, mag_r], [data['WAVG_MAG_PSF_G'] - data['EXINCTION_G'], data['WAVG_MAG_PSF_R'] - data['EXTINCTION_R']])
-        data = numpy.lib.recfunctions.append_fields(data, [mag_g, mag_r], [data['WAVG_MAG_PSF_G'] - data['EXINCTION_G'], data['WAVG_MAG_PSF_R'] - data['EXTINCTION_R']], usemask=False, asrecarray=True)
+        data = numpy.lib.recfunctions.append_fields(data, [mag_g, mag_r], [data['WAVG_MAG_PSF_G'] - data['EXTINCTION_G'], data['WAVG_MAG_PSF_R'] - data['EXTINCTION_R']], usemask=False, asrecarray=True)
         #data = ugali.uitls.mlab.rec_append_fields(data, [mag_g, mag_r], [data['WAVG_MAG_PSF_G'] - data['EXINCTION_G'], data['WAVG_MAG_PSF_R'] - data['EXTINCTION_R']])
     elif survey == 'panstarrs':
         #data = mlab.rec_append_fields(data, [mag_g, mag_r], [data['GFPSFMAG'] - data['EXTSFD_G'], data['RFPSFMAG'] - data['EXTSFD_R']])

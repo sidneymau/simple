@@ -45,13 +45,14 @@ except:
 
 print('Plotting hotspots with sig > {}'.format(sig_cut))
 
-#candidate_list = fits.read(candidate_list)
-candidate_list = np.load(candidate_list)
+candidate_list = fits.read(candidate_list)
+#candidate_list = np.load(candidate_list)
 try: # simple
     candidate_list = candidate_list[candidate_list['SIG'] > sig_cut]
 except: # ugali
     candidate_list = candidate_list[candidate_list['TS'] > 25]
 
+#candidate_list = candidate_list[np.isin(candidate_list['MC_SOURCE_ID'],[23,55,63, 64, 75, 95, 111, 112, 117, 120, 133, 156, 193, 202, 223, 224, 227, 241, 243, 268, 269, 278, 284, 307, 314, 324, 355, 364, 382, 398, 422, 432, 483, 485, 490, 514, 532, 536,  540,  544,  550,  551,  574,  578,  583,  587,  588,  596, 603,  609,  617,  624,  630,  639,  643,  649,  653,  657,  683,  686, 696,  697,  704,  718,  728,  735,  742,  746,  751,  770,  776,  837, 838,  845,  854,  860,  897,  906,  909,  924,  951,  955,  957,  970, 975,  977,  985,  988])]
 # for PS1
 #candidate_list = candidate_list[candidate_list['DEC'] > -15]
 
@@ -84,4 +85,5 @@ for candidate in candidate_list:
     #print(command)
     #os.system(command)
     print(command_queue)
-    os.system(command_queue) # Submit to queue
+    #os.system(command_queue) # Submit to queue
+    subprocess.call(command_queue.split(' '), shell=False)

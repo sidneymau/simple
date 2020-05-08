@@ -125,7 +125,7 @@ def construct_real_data(pix_nside_neighbors):
 def construct_sim_data(pix_nside_neighbors, mc_source_id):
     data_array = []
     cat_file = get_catalog_file(sim_dir, mc_source_id)
-    cat_data = fits.read(cat_file)
+    cat_data = fits.read(cat_file, ext=1)
     pix = hp.ang2pix(nside,cat_data[basis_1],cat_data[basis_2],lonlat=True)
     pix_data = cat_data[np.in1d(pix, pix_nside_neighbors)]
     data_array.append(pix_data)
@@ -191,6 +191,22 @@ def cut_isochrone_path(g, r, g_err, r_err, isochrone, radius=0.1, return_all=Fal
     cut_1 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
 
     cut = np.logical_or(cut_1, cut_2)
+
+    # Cut for horizontal branch
+    mag_1_hb = isochrone.mag_1[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
+    mag_2_hb = isochrone.mag_2[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
+
+    f_isochrone = scipy.interpolate.interp1d(mag_2_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
+    color_diff = np.fabs((g - r) - f_isochrone(r))
+    cut_4 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
+
+    f_isochrone = scipy.interpolate.interp1d(mag_1_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
+    color_diff = np.fabs((g - r) - f_isochrone(g))
+    cut_3 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
+    
+    cut_hb = np.logical_or(cut_3, cut_4)
+
+    cut = np.logical_or(cut, cut_hb)
 
     #mag_bins = np.arange(17., 24.1, 0.1)
     mag_bins = np.arange(17., mag_max+0.1, 0.1)
@@ -709,8 +725,11 @@ def write_output(results_dir, nside, pix_nside_select, ra_peak_array, dec_peak_a
     #                                                                                                                     n_model_peak_array[ii],
     #                                                                                                                     mc_source_id_array[ii]))
     data = [tuple(row) for row in np.stack([sig_peak_array, ra_peak_array, dec_peak_array, distance_modulus_array, r_peak_array, n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, mc_source_id_array], axis=-1)]
-    arr = np.array(data, dtype=[('SIG', float), ('RA', float), ('DEC', float), ('MODULUS', float), ('R', float), ('N_OBS', float), ('N_OBS_HALF', float), ('N_MODEL', float), ('MC_SOURCE_ID', float)])
-    np.save(outfile, arr)
+    arr = np.array(data, dtype=[('SIG', float), ('RA', float), ('DEC', float), ('MODULUS', float), ('R', float), ('N_OBS', float), ('N_OBS_HALF', float), ('N_MODEL', float), ('MC_SOURCE_ID', int)])
+    #np.save(outfile, arr)
+    f = open(outfile, 'ab')
+    np.savetxt(f, arr, delimiter=',')
+    f.close()
 
 ########################################################################
 
@@ -721,10 +740,10 @@ def read_output(results_dir, pix):
     #    results = [result for result in results if (result.size != 0)]
     #    #results = np.concatenate(np.vstack(results))
     #    results = np.concatenate(results)
-    infile = glob.glob(results_dir + '/*{}.csv'.format(pix))
+    infile = glob.glob(results_dir + '/*{}*'.format(pix))
     if (len(infile) > 0):
         results = np.genfromtxt(infile[0], delimiter=',', names=['SIG', 'RA', 'DEC', 'MODULUS', 'R', 'N_OBS', 'N_OBS_HALF', 'N_MODEL', 'MC_SOURCE_ID'])
     else:
-        results = []
+        results = False
 
     return results

@@ -45,14 +45,19 @@ if not os.path.exists(log_dir):
 pop_infiles = sorted(glob.glob(sim_dir + '/*population*.fits'))
 
 for pop_infile in pop_infiles:
+    if pop_infile == sim_population:
+        continue
     logfile = 'log_' + pop_infile[-20:-5] + '.log'
-    batch = 'csub -n {} -o {} --host des50,des51 '.format(jobs, logfile)
+    #batch = 'csub -n {} -o {} --host all '.format(jobs, logfile)
+    batch = 'csub -n {} -o {} --host des40,des41,des50,des51 '.format(jobs, logfile)
+    #batch = 'csub -n {} -o {} '.format(jobs, logfile)
 
     command = 'python {}/batch_submit.py {}'.format(simple_dir, pop_infile)
     command_queue = batch + command
 
     print(command_queue)
-    os.system(command_queue) # Submit to queue
+    #os.system(command_queue) # Submit to queue
+    subprocess.call(command_queue.split(' '), shell=False)
 
 
 ##sim_pop = fits.read(sim_population)

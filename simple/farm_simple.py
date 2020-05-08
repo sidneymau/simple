@@ -49,25 +49,28 @@ if not os.path.exists(log_dir):
 
 def submit_job(ra, dec, pix, mc_source_id, mode, **population_file):
     if (mode == 0):
-        outfile = '{}/results_nside_{}_{}.npy'.format(results_dir, nside, pix)
+        outfile = '{}/results_nside_{}_{}.txt'.format(results_dir, nside, pix)
         logfile = '{}/results_nside_{}_{}.log'.format(log_dir, nside, pix)
         #command = 'python {}/search_algorithm.py {:0.2f} {:0.2f} {:0.2f} {} {}'.format(simple_dir, ra, dec, mc_source_id, outfile, logfile)
     elif (mode == 1):
-        #outfile = '{}/results_mc_source_id_{}.npy'.format(results_dir, mc_source_id) # all values in mc_source_id_array should be the same
+        #outfile = '{}/results_mc_source_id_{}.txt'.format(results_dir, mc_source_id) # all values in mc_source_id_array should be the same
         #logfile = '{}/results_mc_source_id_{}.log'.format(log_dir, mc_source_id) # all values in mc_source_id_array should be the same
-        outfile = '{}/results_nside_{}_{}.npy'.format(results_dir, nside, pix)
+        outfile = '{}/results_nside_{}_{}.txt'.format(results_dir, nside, pix)
         logfile = '{}/results_nside_{}_{}.log'.format(log_dir, nside, pix)
         #command = 'python {}/search_algorithm.py {:0.2f} {:0.2f} {:0.2f} {} {} {}'.format(simple_dir, ra, dec, mc_source_id, outfile, logfile, population_file)
     elif (mode == 2):
-        outfile = '{}/results_mc_source_id_{}.npy'.format(results_dir, mc_source_id) # all values in mc_source_id_array should be the same
+        outfile = '{}/results_mc_source_id_{}.txt'.format(results_dir, mc_source_id) # all values in mc_source_id_array should be the same
         logfile = '{}/results_mc_source_id_{}.log'.format(log_dir, mc_source_id) # all values in mc_source_id_array should be the same
     #batch = 'csub -n {} -o {} '.format(jobs, logfile)
-    batch = 'csub -n {} -o {} --host all '.format(jobs, logfile) # testing condor updates
+    #batch = 'csub -n {} -o {} --host all '.format(jobs, logfile) # testing condor updates
+    batch = 'csub -n {} -o {} --host des40,des50,des51 '.format(jobs, logfile) # testing condor updates
+    #batch = 'csub -n {} -o {} '.format(jobs, logfile) # testing condor updates
     command = 'python {}/search_algorithm.py {:0.2f} {:0.2f} {:0.2f} {} {}'.format(simple_dir, ra, dec, mc_source_id, outfile, logfile)
     command_queue = batch + command
 
     print(command_queue)
-    os.system(command_queue) # Submit to queue
+    #os.system(command_queue) # Submit to queue
+    subprocess.call(command_queue.split(' '), shell=False)
 
     return
 
@@ -91,14 +94,20 @@ if (mode == 0): # real
     
 elif (mode == 1): # real+sim
     sim_pop = fits.read(sim_population)
-    for sim in sim_pop[:]:
+    for sim in sim_pop:
         ra, dec, mc_source_id = sim[basis_1], sim[basis_2], sim['MC_SOURCE_ID']
         pix = hp.ang2pix(nside, ra, dec, lonlat=True)
         print('MC_SOURCE_ID = {}\nPIX = {}\n'.format(mc_source_id, pix))
         results = simple.simple_utils.read_output(results_dir, pix)
-        if (np.in1d(sim['MC_SOURCE_ID'], results['MC_SOURCE_ID']) == False):
-            print('    submitting...')
+        #print(results)
+        if (results == False):
+            print('no results; submitting...')
             submit_job(ra, dec, pix, mc_source_id, mode)
+        elif (np.in1d(sim['MC_SOURCE_ID'], results['MC_SOURCE_ID']) == False):
+            print('not in results; submitting...')
+            submit_job(ra, dec, pix, mc_source_id, mode)
+        else:
+            print('found in results; skipping...')
     #else: 
     #    for sim in sim_pop[:]:
     #        ra, dec, mc_source_id = sim[basis_1], sim[basis_2], sim['MC_SOURCE_ID']
@@ -107,8 +116,8 @@ elif (mode == 1): # real+sim
 
 elif (mode == 2): # real objects
     #sim_pop = fits.read(object_list)
-    sim_pop = np.genfromtxt(object_list, delimiter=',', names=True)[:]
-    for sim in sim_pop[:]:
+    sim_pop = np.genfromtxt(object_list, delimiter=',', names=True)
+    for sim in sim_pop:
         ra, dec, mc_source_id = sim[basis_1], sim[basis_2], sim['MC_SOURCE_ID']
         pix = hp.ang2pix(nside, ra, dec, lonlat=True)
         print('MC_SOURCE_ID = {}\nPIX = {}\n'.format(mc_source_id, pix))

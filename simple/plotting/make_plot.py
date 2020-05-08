@@ -73,25 +73,27 @@ simple.plotting.diagnostic_plots.star_plot(axs[0][2], targ_ra, targ_dec, data, i
 simple.plotting.diagnostic_plots.radial_plot(axs[1][2], targ_ra, targ_dec, data, iso, g_radius, nbhd, field_density)
 
 # Name
-try: # ugali
-    association_string = candidate_list[candidate]['NAME']
-except: # simple
-    # Check for possible associations
-    glon_peak, glat_peak = ugali.utils.projector.celToGal(targ_ra, targ_dec)
-    catalog_array = ['McConnachie15', 'Harris96', 'Corwen04', 'Nilson73', 'Webbink85', 'Kharchenko13', 'WEBDA14','ExtraDwarfs','ExtraClusters']
-    catalog = ugali.candidate.associate.SourceCatalog()
-    for catalog_name in catalog_array:
-        catalog += ugali.candidate.associate.catalogFactory(catalog_name)
+#try: # ugali
+#    association_string = candidate_list[candidate]['NAME']
+#except: # simple
+#    # Check for possible associations
+#    glon_peak, glat_peak = ugali.utils.projector.celToGal(targ_ra, targ_dec)
+#    catalog_array = ['McConnachie15', 'Harris96', 'Corwen04', 'Nilson73', 'Webbink85', 'Kharchenko13', 'WEBDA14','ExtraDwarfs','ExtraClusters']
+#    catalog = ugali.candidate.associate.SourceCatalog()
+#    for catalog_name in catalog_array:
+#        catalog += ugali.candidate.associate.catalogFactory(catalog_name)
+#
+#    idx1, idx2, sep = catalog.match(glon_peak, glat_peak, tol=0.5, nnearest=1)
+#    match = catalog[idx2]
+#    if len(match) > 0:
+#        association_string = '{} at {:0.3f} deg'.format(match[0]['name'], float(sep))
+#    else:
+#        association_string = 'No association within 0.5 deg'
+#
+#association_string = str(np.char.strip(association_string))
+#association_string = repr(association_string)
 
-    idx1, idx2, sep = catalog.match(glon_peak, glat_peak, tol=0.5, nnearest=1)
-    match = catalog[idx2]
-    if len(match) > 0:
-        association_string = '{} at {:0.3f} deg'.format(match[0]['name'], float(sep))
-    else:
-        association_string = 'No association within 0.5 deg'
-
-association_string = str(np.char.strip(association_string))
-association_string = repr(association_string)
+association_string = 'null'
 
 plt.suptitle('{}\n'.format(association_string) + r'($\alpha$, $\delta$, $\mu$, $\sigma$, MC_SOURCE_ID) = ({:0.2f}, {:0.2f}, {:0.2f}, {:0.2f}, {:0.0f})'.format(targ_ra, targ_dec, mod, sig, mc_source_id), fontsize=24)
 

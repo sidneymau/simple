@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import yaml
 import numpy as np
@@ -72,7 +73,8 @@ for hotspot in data[data['SIG'] > sig_sel]:
             command_queue = batch + command
 
             print(command_queue)
-            os.system(command_queue) # Submit to queue
+            #os.system(command_queue) # Submit to queue
+            subprocess.call(command_queue.split(' '), shell=False)
 
 
 plt.ylim([min(data[basis_2]), max(data[basis_2])])

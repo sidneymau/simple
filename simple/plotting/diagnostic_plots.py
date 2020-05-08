@@ -12,9 +12,8 @@ import fitsio as fits
 from astropy.coordinates import SkyCoord
 from ugali.utils import healpix
 from ugali.isochrone import factory as isochrone_factory
-import ugali.utils.projector
-import ugali.utils.plotting
 import healpy
+import healpy as hp
 
 import numpy as np
 from operator import add
@@ -30,6 +29,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import simple.filters
 import simple.simple_utils
+
+import ugali.utils.healpix
+import ugali.utils.projector
+import ugali.utils.plotting
+import ugali.candidate.associate
+from ugali.isochrone import factory as isochrone_factory
 
 ################################################################################
 

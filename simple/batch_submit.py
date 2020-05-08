@@ -49,16 +49,21 @@ except:
 
 ############################################################
 
-outfile = '{}/results_{}.csv'.format(results_dir, pop_infile[-20:-5])
+#outfile = '{}/results_{}.csv'.format(results_dir, pop_infile[-20:-5])
 logfile = '{}/log_{}.log'.format(log_dir, pop_infile[-20:-5])
 
 sim_pop = fits.read(pop_infile)
 for sim in sim_pop:
     ra, dec, mc_source_id = sim[basis_1], sim[basis_2], sim['MC_SOURCE_ID']
-    
     pix = hp.ang2pix(nside, ra, dec, lonlat=True)
+    outfile = '{}/results_nside_{}_{}.txt'.format(results_dir, nside, pix)
+    #logfile = '{}/results_nside_{}_{}.log'.format(log_dir, nside, pix)
+
+    #outfile = '{}/results_mc_source_id_{}.txt'.format(results_dir, mc_source_id) # all values in mc_source_id_array should be the same
+    #logfile = '{}/results_mc_source_id_{}.log'.format(log_dir, mc_source_id) # all values in mc_source_id_array should be the same
     
     command = 'python {}/search_algorithm.py {:0.2f} {:0.2f} {:0.2f} {} >> {}'.format(simple_dir, ra, dec, mc_source_id, outfile, logfile)
     
     print(command)
-    os.system(command) # Submit to queue
+    #os.system(command) # Submit to queue
+    subprocess.call(command.split(' '), shell=False)

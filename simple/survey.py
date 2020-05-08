@@ -27,10 +27,14 @@ class Survey():
         self.mag_dered_1 = self.mag_dered.format(self.band_1.upper())
         self.mag_dered_2 = self.mag_dered.format(self.band_2.upper())
 
+        self.spread_model = 'WAVG_SPREAD_MODEL_{}'.format(self.band_1.upper())
+        self.spreaderr_model = 'SPREADERR_MODEL_{}'.format(self.band_1.upper())
+
         self.cols = [self.basis_1, self.basis_2,
                      self.mag_1, self.mag_2,
                      self.mag_err_1, self.mag_err_2,
-                     self.mag_dered_1, self.mag_dered_2]
+                     self.mag_dered_1, self.mag_dered_2,
+                     self.spread_model, self.spreaderr_model]
 
     def get_fracdet(self):
         """
@@ -43,6 +47,14 @@ class Survey():
             print('No fracdet map specified ...')
             fracdet = None
         return(fracdet)
+
+    def get_neighbors(self, ra, dec):
+        """
+        Return center healpixel and 8 nearest neighbors for a given ra, dec pair.
+        """
+        pix_select = ugali.utils.healpix.angToPix(self.nside, ra, dec)
+        pix_neighbors = np.concatenate([[pix_select], hp.get_all_neighbours(self.nside, pix_select)])
+        return(pix_neighbors)
 
     def get_data(self, pixels):
         """
@@ -58,10 +70,16 @@ class Survey():
         data = np.concatenate(data_array)
         return(data)
 
-    def get_neighbors(self, ra, dec):
+    def get_stars(self, data):
         """
-        Return center healpixel and 8 nearest neighbors for a given ra, dec pair.
+        Return boolean list of star-like objects.
         """
-        pix_select = ugali.utils.healpix.angToPix(self.nside, ra, dec)
-        pix_neighbors = np.concatenate([[pix_select], hp.get_all_neighbours(self.nside, pix_select)])
-        return(pix_neighbors)
+        sel = (data['WAVG_SPREAD_MODEL_G'] < 0.003 + data['SPREADERR_MODEL_G'])
+        return(sel)
+
+    def get_galaxies(self, data):
+        """
+        Return boolean list of galaxy-like objects.
+        """
+        sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
+        return(sel)

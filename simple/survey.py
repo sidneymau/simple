@@ -37,3 +37,8 @@ class Survey():
         self.mag_err_2 = self.mag_err.format(self.band_2.upper())
         self.mag_dered_1 = self.mag_dered.format(self.band_1.upper())
         self.mag_dered_2 = self.mag_dered.format(self.band_2.upper())
+
+        self.cols = [self.basis_1, self.basis_2,
+                     self.mag_1, self.mag_2,
+                     self.mag_err_1, self.mag_err_2,
+                     self.mag_dered_1, self.mag_dered_2]

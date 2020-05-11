@@ -46,8 +46,7 @@ def search_by_distance(survey, region, data, distance_modulus):
     if (len(data) == 0):
         return [], [], [], [], [], [], [], []
 
-    # Compute characteristic density at this distance
-    characteristic_density = simple_utils.compute_char_density(survey.nside, data, region.ra, region.dec, survey.mag_max, survey.fracdet)
+    characteristic_density = region.characteristic_density(data)
 
     ra_peak_array = []
     dec_peak_array = []
@@ -58,15 +57,13 @@ def search_by_distance(survey, region, data, distance_modulus):
     n_obs_half_peak_array = []
     n_model_peak_array = []
 
-    proj = ugali.utils.projector.Projector(region.ra, region.dec)
-
     x_peak_array, y_peak_array, angsep_peak_array = simple_utils.find_peaks(survey.nside, data, characteristic_density, distance_modulus, region.pix, region.ra, region.dec, survey.mag_max, survey.fracdet)
 
     for x_peak, y_peak, angsep_peak in itertools.izip(x_peak_array, y_peak_array, angsep_peak_array):
-        characteristic_density_local = simple_utils.compute_local_char_density(survey.nside, data, characteristic_density, region.ra, region.dec, x_peak, y_peak, angsep_peak, mag_max, survey.fracdet)
+        characteristic_density_local = region.characteristic_density_local(data, x_peak, y_peak, angsep_peak)
         # Aperture fitting
         print('Fitting aperture to hotspot...')
-        ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple_utils.fit_aperture(proj, distance_modulus, characteristic_density_local, x_peak, y_peak, angsep_peak)
+        ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple_utils.fit_aperture(region.proj, distance_modulus, characteristic_density_local, x_peak, y_peak, angsep_peak)
         
         ra_peak_array.append(ra_peaks)
         dec_peak_array.append(dec_peaks)

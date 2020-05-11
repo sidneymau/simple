@@ -10,6 +10,7 @@ import numpy as np
 import healpy as hp
 
 import ugali.utils.healpix
+import ugali.utils.projector
 
 #------------------------------------------------------------------------------
 
@@ -95,12 +96,14 @@ class Region():
     def __init__(self, survey, ra, dec):
         self.survey = survey
         self.nside = self.survey.nside
-        self.fracdet = self.survey.fracdet
 
         self.ra = ra
         self.dec = dec
+        self.proj = ugali.utils.projector.Projector(self.ra, self.dec)
         self.pix_center = ugali.utils.healpix.angToPix(self.nside, self.ra, self.dec)
         self.pix_neighbors = np.concatenate([[self.pix_center], hp.get_all_neighbours(self.nside, self.pix_center)])
+
+        self.fracdet = self.survey.fracdet
 
     def get_data(self):
         return(self.survey.get_data(self.pix_neighbors))
@@ -110,3 +113,148 @@ class Region():
 
     def get_galaxies(self, data):
         return(self.survey.get_galaxies(data))
+
+    def characteristic_density(self, data):
+        """
+        Compute the characteristic density of a region
+        Convlve the field and find overdensity peaks
+        """
+    
+        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+    
+        x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
+        #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
+        delta_x = 0.01
+        area = delta_x**2
+        smoothing = 2. / 60. # Was 3 arcmin
+        bins = np.arange(-8., 8. + 1.e-10, delta_x)
+        centers = 0.5 * (bins[0: -1] + bins[1:])
+        yy, xx = np.meshgrid(centers, centers)
+    
+        h = np.histogram2d(x, y, bins=[bins, bins])[0]
+    
+        h_g = scipy.ndimage.filters.gaussian_filter(h, smoothing / delta_x)
+    
+        #cut_goodcoverage = (data['NEPOCHS_G'][cut_magnitude_threshold] >= 2) & (data['NEPOCHS_R'][cut_magnitude_threshold] >= 2)
+        # expect NEPOCHS to be good in DES data
+    
+        delta_x_coverage = 0.1
+        area_coverage = (delta_x_coverage)**2
+        bins_coverage = np.arange(-5., 5. + 1.e-10, delta_x_coverage)
+        h_coverage = np.histogram2d(x, y, bins=[bins_coverage, bins_coverage])[0]
+        #h_goodcoverage = np.histogram2d(x[cut_goodcoverage], y[cut_goodcoverage], bins=[bins_coverage, bins_coverage])[0]
+        h_goodcoverage = np.histogram2d(x, y, bins=[bins_coverage, bins_coverage])[0]
+    
+        n_goodcoverage = h_coverage[h_goodcoverage > 0].flatten()
+    
+        #characteristic_density = np.mean(n_goodcoverage) / area_coverage # per square degree
+        characteristic_density = np.median(n_goodcoverage) / area_coverage # per square degree
+        print('Characteristic density = {:0.1f} deg^-2').format(characteristic_density)
+    
+        # Use pixels with fracdet ~1.0 to estimate the characteristic density
+        if self.fracdet is not None:
+            fracdet_zero = np.tile(0., len(self.fracdet))
+            cut = (self.fracdet != hp.UNSEEN)
+            fracdet_zero[cut] = self.fracdet[cut]
+    
+            nside_fracdet = hp.npix2nside(len(self.fracdet))
+            
+            subpix_region_array = []
+            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.basis_1], data[survey.basis_2])):
+                subpix_region_array.append(ugali.utils.healpix.subpixel(self.pix_center, self.nside, nside_fracdet))
+            subpix_region_array = np.concatenate(subpix_region_array)
+    
+            # Compute mean fracdet in the region so that this is available as a correction factor
+            cut = (self.fracdet[subpix_region_array] != hp.UNSEEN)
+            mean_fracdet = np.mean(self.fracdet[subpix_region_array[cut]])
+    
+            # smau: this doesn't seem to be used in the non-local density estimation
+            subpix_region_array = subpix_region_array[fracdet[subpix_region_array] > 0.99]
+            subpix = ugali.utils.healpix.angToPix(nside_fracdet, 
+                                                  data[survey.basis_1][cut_magnitude_threshold], 
+                                                  data[survey.basis_2][cut_magnitude_threshold])
+            characteristic_density_fracdet = float(np.sum(np.in1d(subpix, subpix_region_array))) \
+                                             / (hp.nside2pixarea(nside_fracdet, degrees=True) * len(subpix_region_array)) # deg^-2
+            print('Characteristic density fracdet = {:0.1f} deg^-2').format(characteristic_density_fracdet)
+            
+            # Correct the characteristic density by the mean fracdet value
+            characteristic_density_raw = 1. * characteristic_density
+            characteristic_density /= mean_fracdet 
+            print('Characteristic density (fracdet corrected) = {:0.1f} deg^-2').format(characteristic_density)
+    
+        return(characteristic_density)
+    
+    def characteristic_density_local(self, data, x_peak, y_peak, angsep_peak):
+        """
+        Compute the local characteristic density of a region
+        """
+    
+        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+    
+        x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
+        #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
+    
+        # If fracdet map is available, use that information to either compute local density,
+        # or in regions of spotty coverage, use the typical density of the region
+        if self.fracdet is not None:
+            # The following is copied from how it's used in compute_char_density
+            fracdet_zero = np.tile(0., len(self.fracdet))
+            cut = (self.fracdet != hp.UNSEEN)
+            fracdet_zero[cut] = self.fracdet[cut]
+    
+            nside_fracdet = hp.npix2nside(len(self.fracdet))
+            
+            subpix_region_array = []
+            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.basis_1], data[survey.basis_2])):
+                subpix_region_array.append(ugali.utils.healpix.subpixel(self.pix_center, self.nside, nside_fracdet))
+            subpix_region_array = np.concatenate(subpix_region_array)
+    
+            # Compute mean fracdet in the region so that this is available as a correction factor
+            cut = (self.fracdet[subpix_region_array] != hp.UNSEEN)
+            mean_fracdet = np.mean(self.fracdet[subpix_region_array[cut]])
+    
+            subpix_region_array = subpix_region_array[self.fracdet[subpix_region_array] > 0.99]
+            subpix = ugali.utils.healpix.angToPix(nside_fracdet, 
+                                                  data[survey.basis_1][cut_magnitude_threshold], 
+                                                  data[survey.basis_2][cut_magnitude_threshold])
+    
+            # This is where the local computation begins
+            ra_peak, dec_peak = self.proj.imageToSphere(x_peak, y_peak)
+            subpix_all = ugali.utils.healpix.angToDisc(nside_fracdet, ra_peak, dec_peak, 0.5)
+            subpix_inner = ugali.utils.healpix.angToDisc(nside_fracdet, ra_peak, dec_peak, 0.3)
+            subpix_annulus = subpix_all[~np.in1d(subpix_all, subpix_inner)]
+            mean_fracdet = np.mean(fracdet_zero[subpix_annulus])
+            print('mean_fracdet {}'.format(mean_fracdet))
+            if mean_fracdet < 0.5:
+                characteristic_density_local = self.characteristic_density
+                print('characteristic_density_local baseline {}').format(characteristic_density_local)
+            else:
+                # Check pixels in annulus with complete coverage
+                subpix_annulus_region = np.intersect1d(subpix_region_array, subpix_annulus)
+                print('{} percent pixels with complete coverage'.format(float(len(subpix_annulus_region)) / len(subpix_annulus)))
+                if (float(len(subpix_annulus_region)) / len(subpix_annulus)) < 0.25:
+                    characteristic_density_local = self.characteristic_density
+                    print('characteristic_density_local spotty {}'.format(characteristic_density_local))
+                else:
+                    characteristic_density_local = float(np.sum(np.in1d(subpix, subpix_annulus_region))) \
+                                                   / (hp.nside2pixarea(nside_fracdet, degrees=True) * len(subpix_annulus_region)) # deg^-2
+                    print('characteristic_density_local cleaned up {}'.format(characteristic_density_local))
+        else:
+            # Compute the local characteristic density
+            area_field = np.pi * (0.5**2 - 0.3**2)
+            n_field = np.sum((angsep_peak > 0.3) & (angsep_peak < 0.5))
+            characteristic_density_local = n_field / area_field
+    
+            # If not good azimuthal coverage, revert
+            cut_annulus = (angsep_peak > 0.3) & (angsep_peak < 0.5) 
+            #phi = np.degrees(np.arctan2(y_full[cut_annulus] - y_peak, x_full[cut_annulus] - x_peak)) # Use full magnitude range, NOT TESTED!!!
+            phi = np.degrees(np.arctan2(y[cut_annulus] - y_peak, x[cut_annulus] - x_peak)) # Impose magnitude threshold
+            h = np.histogram(phi, bins=np.linspace(-180., 180., 13))[0]
+            if np.sum(h > 0) < 10 or np.sum(h > 0.5 * np.median(h)) < 10:
+                #angsep_peak = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
+                characteristic_density_local = characteristic_density
+    
+        print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
+    
+        return(characteristic_density_local)
+

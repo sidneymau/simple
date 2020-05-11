@@ -41,7 +41,7 @@ class Survey():
     @property
     def load_fracdet(self):
         """
-        Load-in and return the fracdet map if it exists.
+        Load-in the fracdet map if it exists.
         """
         if (self.fracdet is not None) and (self.fracdet.lower().strip() != 'none') and (self.fracdet != ''):
             print('Reading fracdet map {} ...').format(self.fracdet)
@@ -87,3 +87,26 @@ class Survey():
         """
         sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
         return(sel)
+
+class Region():
+    """
+    Class to handle regions.
+    """
+    def __init__(self, survey, ra, dec):
+        self.survey = survey
+        self.nside = self.survey.nside
+        self.fracdet = self.survey.fracdet
+
+        self.ra = ra
+        self.dec = dec
+        self.pix_center = ugali.utils.healpix.angToPix(self.nside, self.ra, self.dec)
+        self.pix_neighbors = np.concatenate([[self.pix_center], hp.get_all_neighbours(self.nside, self.pix_center)])
+
+    def get_data(self):
+        return(self.survey.get_data(self.pix_neighbors))
+
+    def get_stars(self, data):
+        return(self.survey.get_stars(data))
+
+    def get_galaxies(self, data):
+        return(self.survey.get_galaxies(data))

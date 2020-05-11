@@ -21,7 +21,7 @@ import simple.survey
 
 #------------------------------------------------------------------------------
 
-def search_by_distance(survey, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold=mag_max):
+def search_by_distance(survey, region, data, distance_modulus):
     """
     Idea: 
     Send a data extension that goes to faint magnitudes, e.g., g < 24.
@@ -33,12 +33,12 @@ def search_by_distance(survey, data, distance_modulus, pix_nside_select, ra_sele
 
     print('Distance = {:0.1f} kpc (m-M = {:0.1f})').format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus)
 
-    iso = ugali.isochrone.factory(name=isoname, survey=isosurvey, band_1=band_1.lower(), band_2=band_2.lower())
+    iso = ugali.isochrone.factory(name=survey.isoname, survey=survey.isosurvey, band_1=survey.band_1.lower(), band_2=survey.band_2.lower())
     iso.age = 12.
     iso.metallicity = 0.0001
     iso.distance_modulus = distance_modulus
 
-    cut = simple_utils.cut_isochrone_path(data[mag_dered_1], data[mag_dered_2], data[mag_err_1], data[mag_err_2], iso, radius=0.1)
+    cut = simple_utils.cut_isochrone_path(data[survey.mag_dered_1], data[survey.mag_dered_2], data[survey.mag_err_1], data[survey.mag_err_2], iso, radius=0.1)
     data = data[cut]
 
     print('{} objects left after isochrone cut...').format(len(data))
@@ -47,7 +47,7 @@ def search_by_distance(survey, data, distance_modulus, pix_nside_select, ra_sele
         return [], [], [], [], [], [], [], []
 
     # Compute characteristic density at this distance
-    characteristic_density = simple_utils.compute_char_density(survey.nside, data, ra_select, dec_select, mag_max, survey.fracdet)
+    characteristic_density = simple_utils.compute_char_density(survey.nside, data, region.ra, region.dec, survey.mag_max, survey.fracdet)
 
     ra_peak_array = []
     dec_peak_array = []
@@ -58,12 +58,12 @@ def search_by_distance(survey, data, distance_modulus, pix_nside_select, ra_sele
     n_obs_half_peak_array = []
     n_model_peak_array = []
 
-    proj = ugali.utils.projector.Projector(ra_select, dec_select)
+    proj = ugali.utils.projector.Projector(region.ra, region.dec)
 
-    x_peak_array, y_peak_array, angsep_peak_array = simple_utils.find_peaks(survey.nside, data, characteristic_density, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold, survey.fracdet)
+    x_peak_array, y_peak_array, angsep_peak_array = simple_utils.find_peaks(survey.nside, data, characteristic_density, distance_modulus, region.pix, region.ra, region.dec, survey.mag_max, survey.fracdet)
 
     for x_peak, y_peak, angsep_peak in itertools.izip(x_peak_array, y_peak_array, angsep_peak_array):
-        characteristic_density_local = simple_utils.compute_local_char_density(survey.nside, data, characteristic_density, ra_select, dec_select, x_peak, y_peak, angsep_peak, mag_max, survey.fracdet)
+        characteristic_density_local = simple_utils.compute_local_char_density(survey.nside, data, characteristic_density, region.ra, region.dec, x_peak, y_peak, angsep_peak, mag_max, survey.fracdet)
         # Aperture fitting
         print('Fitting aperture to hotspot...')
         ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple_utils.fit_aperture(proj, distance_modulus, characteristic_density_local, x_peak, y_peak, angsep_peak)
@@ -107,26 +107,53 @@ if __name__ == '__main__':
         cfg = yaml.load(ymlfile)
         survey = simple.survey.Survey(cfg)
 
-    #--------------------------------------------------------------------------
-
-    ra = args['ra']
-    dec = args['dec']
-    print('Search coordinates: (RA, Dec) = ({:0.2f}, {:0.2f})').format(ra, dec)
-
-    neighbors = survey.get_neighbors(ra, dec)
-    print('Healpixels: {}'.format(neighbors))
+    survey.load_fracdet
 
     #--------------------------------------------------------------------------
 
-    data = survey.get_data(neighbors)
+    #ra = args['ra']
+    #dec = args['dec']
+    #print('Search coordinates: (RA, Dec) = ({:0.2f}, {:0.2f})').format(ra, dec)
+
+    #pix = ugali.utils.healpix.angToPix(survey.nside, ra, dec)
+    #print('Search healpixel: {} (nside = {})').format(pix, survey.nside)
+
+    #neighbors = survey.get_neighbors(ra, dec)
+    #print('Healpixels: {}'.format(neighbors))
+
+    region = simple.survey.Region(survey, args['ra'], args['dec'])
+    print('Search coordinates: (RA, Dec) = ({:0.2f}, {:0.2f})').format(region.ra, region.dec)
+    print('Search healpixel: {} (nside = {})').format(region.pix_center, region.nside)
+    print('Healpixels: {}'.format(region.pix_neighbors))
+
+    #--------------------------------------------------------------------------
+
+    #data = survey.get_data(neighbors)
+    ## assume data is cut for quality and dereddened during skim
+    #print('Found {} objects').format(len(data))
+    #if (len(data) == 0):
+    #    print('Ending search.')
+    #    exit()
+
+    #star_sel = survey.get_stars(data)
+    #galaxy_sel = survey.get_galaxies(data)
+    #print('Found {} stars').format(sum(star_sel))
+    #print('Found {} galaxies').format(sum(galaxy_sel))
+    #if (sum(star_sel) == 0):
+    #    print('Ending search.')
+    #    exit()
+
+    #stars = data[star_sel]
+
+    data = region.get_data()
     # assume data is cut for quality and dereddened during skim
     print('Found {} objects').format(len(data))
     if (len(data) == 0):
         print('Ending search.')
         exit()
 
-    star_sel = survey.get_stars(data)
-    galaxy_sel = survey.get_galaxies(data)
+    star_sel = region.get_stars(data)
+    galaxy_sel = region.get_galaxies(data)
     print('Found {} stars').format(sum(star_sel))
     print('Found {} galaxies').format(sum(galaxy_sel))
     if (sum(star_sel) == 0):
@@ -137,15 +164,8 @@ if __name__ == '__main__':
 
     #--------------------------------------------------------------------------
 
-    #fracdet = survey.get_fracdet()
-    survey.load_fracdet
-
-    #--------------------------------------------------------------------------
-
     distance_modulus_search_array = np.arange(16., survey.mag_max, 0.5)
 
-    #--------------------------------------------------------------------------
-    
     ra_peak_array = []
     dec_peak_array = [] 
     r_peak_array = []
@@ -157,7 +177,7 @@ if __name__ == '__main__':
     n_model_peak_array = []
     
     for distance_modulus in distance_modulus_search_array:
-        ra_peaks, dec_peaks, r_peaks, sig_peaks, dist_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple.simple_utils.search_by_distance(survey, data, distance_modulus, pix_nside_select, ra_select, dec_select, mag_max)
+        ra_peaks, dec_peaks, r_peaks, sig_peaks, dist_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple.simple_utils.search_by_distance(survey, region, data[stars], distance_modulus)
         ra_peak_array.append(ra_peaks)
         dec_peak_array.append(dec_peaks)
         r_peak_array.append(r_peaks)

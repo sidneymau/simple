@@ -89,6 +89,8 @@ class Survey():
         sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
         return(sel)
 
+#------------------------------------------------------------------------------
+
 class Region():
     """
     Class to handle regions.
@@ -258,3 +260,112 @@ class Region():
     
         return(characteristic_density_local)
 
+    def find_peaks(self, data, distance_modulus):
+        """
+        Convolve field to find characteristic density and peaks within the selected pixel
+        """
+
+        characteristic_density = self.characteristic_density(data)
+    
+        # convolve field and find peaks
+        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+    
+        x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
+        #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
+        delta_x = 0.01
+        area = delta_x**2
+        smoothing = 2. / 60. # Was 3 arcmin
+        bins = np.arange(-8., 8. + 1.e-10, delta_x)
+        centers = 0.5 * (bins[0: -1] + bins[1:])
+        yy, xx = np.meshgrid(centers, centers)
+    
+        h = np.histogram2d(x, y, bins=[bins, bins])[0]
+        
+        h_g = scipy.ndimage.filters.gaussian_filter(h, smoothing / delta_x)
+    
+        factor_array = np.arange(1., 5., 0.05)
+        rara, decdec = self.proj.imageToSphere(xx.flatten(), yy.flatten())
+        cutcut = (ugali.utils.healpix.angToPix(self.nside, rara, decdec) == pix_nside_select).reshape(xx.shape)
+        threshold_density = 5 * characteristic_density * area
+        for factor in factor_array:
+            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (area * characteristic_density * factor))
+            #print 'factor', factor, n_region, n_region < 10
+            if n_region < 10:
+                threshold_density = area * characteristic_density * factor
+                break
+    
+        h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > threshold_density)
+        h_region = np.ma.array(h_region, mask=(h_region < 1))
+    
+        x_peak_array = []
+        y_peak_array = []
+        angsep_peak_array = []
+    
+        for index in range(1, n_region + 1): # loop over peaks
+            index_peak = np.argmax(h_g * (h_region == index))
+            x_peak, y_peak = xx.flatten()[index_peak], yy.flatten()[index_peak]
+            #print index, np.max(h_g * (h_region == index))
+            
+            #angsep_peak = np.sqrt((x_full - x_peak)**2 + (y_full - y_peak)**2) # Use full magnitude range, NOT TESTED!!!
+            angsep_peak = np.sqrt((x - x_peak)**2 + (y - y_peak)**2) # Impose magnitude threshold
+    
+            x_peak_array.append(x_peak)
+            y_peak_array.append(y_peak)
+            angsep_peak_array.append(angsep_peak)
+        
+        return x_peak_array, y_peak_array, angsep_peak_array
+    
+    def fit_aperture(self, distance_modulus, x_peak, y_peak, angsep_peak):
+        """
+        Fit aperture by varing radius and computing the significance
+        """
+
+        characteristic_density_local = self.characteristic_density_local(data, x_peak, y_peak, angsep_peak)
+    
+        ra_peak_array = []
+        dec_peak_array = []
+        r_peak_array = []
+        sig_peak_array = []
+        distance_modulus_array = []
+        n_obs_peak_array = []
+        n_obs_half_peak_array = []
+        n_model_peak_array = []
+    
+        size_array = np.arange(0.01, 0.3, 0.01)
+        sig_array = np.tile(0., len(size_array))
+        
+        size_array_zero = np.concatenate([[0.], size_array])
+        area_array = np.pi * (size_array_zero[1:]**2 - size_array_zero[0:-1]**2)
+    
+        n_obs_array = np.tile(0, len(size_array))
+        n_model_array = np.tile(0., len(size_array))
+        for ii in range(0, len(size_array)):
+            n_obs = np.sum(angsep_peak < size_array[ii])
+            n_model = characteristic_density_local * (np.pi * size_array[ii]**2)
+            sig_array[ii] = np.clip(scipy.stats.norm.isf(scipy.stats.poisson.sf(n_obs, n_model)), 0., 37.5) # Clip at 37.5
+            n_obs_array[ii] = n_obs
+            n_model_array[ii] = n_model
+    
+        ra_peak, dec_peak = proj.imageToSphere(x_peak, y_peak)
+    
+        index_peak = np.argmax(sig_array)
+        r_peak = size_array[index_peak]
+        #if np.max(sig_array) >= 37.5:
+        #    r_peak = 0.5
+        n_obs_peak = n_obs_array[index_peak]
+        n_model_peak = n_model_array[index_peak]
+        n_obs_half_peak = np.sum(angsep_peak < (0.5 * r_peak))
+    
+        # Compile resilts
+        print('Candidate: x_peak: {:12.3f}, y_peak: {:12.3f}, r_peak: {:12.3f}, sig: {:12.3f}, ra_peak: {:12.3f}, dec_peak: {:12.3f}'.format(x_peak, y_peak, r_peak, np.max(sig_array), ra_peak, dec_peak))
+        ra_peak_array.append(ra_peak)
+        dec_peak_array.append(dec_peak)
+        r_peak_array.append(r_peak)
+        #sig_peak_array.append(np.max(sig_array))
+        sig_peak_array.append(sig_array[index_peak])
+        distance_modulus_array.append(distance_modulus)
+        n_obs_peak_array.append(n_obs_peak)
+        n_obs_half_peak_array.append(n_obs_half_peak)
+        n_model_peak_array.append(n_model_peak)
+    
+        return ra_peak_array, dec_peak_array, r_peak_array, sig_peak_array, distance_modulus_array, n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array

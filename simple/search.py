@@ -57,13 +57,13 @@ def search_by_distance(survey, region, data, distance_modulus):
     n_obs_half_peak_array = []
     n_model_peak_array = []
 
-    x_peak_array, y_peak_array, angsep_peak_array = simple_utils.find_peaks(survey.nside, data, characteristic_density, distance_modulus, region.pix, region.ra, region.dec, survey.mag_max, survey.fracdet)
+    x_peak_array, y_peak_array, angsep_peak_array = region.find_peaks(data, distance_modulus)
 
     for x_peak, y_peak, angsep_peak in itertools.izip(x_peak_array, y_peak_array, angsep_peak_array):
         characteristic_density_local = region.characteristic_density_local(data, x_peak, y_peak, angsep_peak)
         # Aperture fitting
         print('Fitting aperture to hotspot...')
-        ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple_utils.fit_aperture(region.proj, distance_modulus, characteristic_density_local, x_peak, y_peak, angsep_peak)
+        ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = region.fit_aperture(distance_modulus, x_peak, y_peak, angsep_peak)
         
         ra_peak_array.append(ra_peaks)
         dec_peak_array.append(dec_peaks)
@@ -108,39 +108,12 @@ if __name__ == '__main__':
 
     #--------------------------------------------------------------------------
 
-    #ra = args['ra']
-    #dec = args['dec']
-    #print('Search coordinates: (RA, Dec) = ({:0.2f}, {:0.2f})').format(ra, dec)
-
-    #pix = ugali.utils.healpix.angToPix(survey.nside, ra, dec)
-    #print('Search healpixel: {} (nside = {})').format(pix, survey.nside)
-
-    #neighbors = survey.get_neighbors(ra, dec)
-    #print('Healpixels: {}'.format(neighbors))
-
     region = simple.survey.Region(survey, args['ra'], args['dec'])
     print('Search coordinates: (RA, Dec) = ({:0.2f}, {:0.2f})').format(region.ra, region.dec)
     print('Search healpixel: {} (nside = {})').format(region.pix_center, region.nside)
     print('Healpixels: {}'.format(region.pix_neighbors))
 
     #--------------------------------------------------------------------------
-
-    #data = survey.get_data(neighbors)
-    ## assume data is cut for quality and dereddened during skim
-    #print('Found {} objects').format(len(data))
-    #if (len(data) == 0):
-    #    print('Ending search.')
-    #    exit()
-
-    #star_sel = survey.get_stars(data)
-    #galaxy_sel = survey.get_galaxies(data)
-    #print('Found {} stars').format(sum(star_sel))
-    #print('Found {} galaxies').format(sum(galaxy_sel))
-    #if (sum(star_sel) == 0):
-    #    print('Ending search.')
-    #    exit()
-
-    #stars = data[star_sel]
 
     data = region.get_data()
     # assume data is cut for quality and dereddened during skim
@@ -229,22 +202,23 @@ if __name__ == '__main__':
     
     for ii in range(0, len(sig_peak_array)):
         print('{:0.2f} sigma; (RA, Dec, d) = ({:0.2f}, {:0.2f}); r = {:0.2f} deg; d = {:0.1f}, mu = {:0.2f} mag), mc_source_id: {:0.2f}'.format(sig_peak_array[ii], 
-                     ra_peak_array[ii], 
-                     dec_peak_array[ii], 
-                     r_peak_array[ii],
-                     ugali.utils.projector.distanceModulusToDistance(distance_modulus_array[ii]),
-                     distance_modulus_array[ii],
-                     mc_source_id_array[ii]))
+                         ra_peak_array[ii], 
+                         dec_peak_array[ii], 
+                         r_peak_array[ii],
+                         ugali.utils.projector.distanceModulusToDistance(distance_modulus_array[ii]),
+                         distance_modulus_array[ii],
+                         mc_source_id_array[ii]))
     
     # Write output
     if (len(sig_peak_array) > 0):
-        simple.simple_utils.write_output(results_dir, survey.nside, pix_nside_select, ra_peak_array, dec_peak_array, r_peak_array, distance_modulus_array, 
-                                 n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, 
-                                 sig_peak_array, mc_source_id_array, mode, outfile)
+        simple.simple_utils.write_output(results_dir, survey.nside, pix_nside_select, ra_peak_array, dec_peak_array,
+                                         r_peak_array, distance_modulus_array, 
+                                         n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, 
+                                         sig_peak_array, mc_source_id_array, mode, outfile)
     else:
         print('No significant hotspots found.')
         nan_array = [np.nan]
         simple.simple_utils.write_output(results_dir, survey.nside, pix_nside_select,
-                                 nan_array, nan_array, nan_array, nan_array, 
-                                 nan_array, nan_array, nan_array, nan_array,
-                                 [mc_source_id], mode, outfile)
+                                         nan_array, nan_array, nan_array, nan_array, 
+                                         nan_array, nan_array, nan_array, nan_array,
+                                         [mc_source_id], mode, outfile)

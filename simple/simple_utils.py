@@ -192,21 +192,21 @@ def cut_isochrone_path(g, r, g_err, r_err, isochrone, radius=0.1, return_all=Fal
 
     cut = np.logical_or(cut_1, cut_2)
 
-    # Cut for horizontal branch
-    mag_1_hb = isochrone.mag_1[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
-    mag_2_hb = isochrone.mag_2[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
+    ## Cut for horizontal branch
+    #mag_1_hb = isochrone.mag_1[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
+    #mag_2_hb = isochrone.mag_2[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
 
-    f_isochrone = scipy.interpolate.interp1d(mag_2_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
-    color_diff = np.fabs((g - r) - f_isochrone(r))
-    cut_4 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
+    #f_isochrone = scipy.interpolate.interp1d(mag_2_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
+    #color_diff = np.fabs((g - r) - f_isochrone(r))
+    #cut_4 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
 
-    f_isochrone = scipy.interpolate.interp1d(mag_1_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
-    color_diff = np.fabs((g - r) - f_isochrone(g))
-    cut_3 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
-    
-    cut_hb = np.logical_or(cut_3, cut_4)
+    #f_isochrone = scipy.interpolate.interp1d(mag_1_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
+    #color_diff = np.fabs((g - r) - f_isochrone(g))
+    #cut_3 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
+    #
+    #cut_hb = np.logical_or(cut_3, cut_4)
 
-    cut = np.logical_or(cut, cut_hb)
+    #cut = np.logical_or(cut, cut_hb)
 
     #mag_bins = np.arange(17., 24.1, 0.1)
     mag_bins = np.arange(17., mag_max+0.1, 0.1)

@@ -36,7 +36,10 @@ class Survey():
                      self.mag_dered_1, self.mag_dered_2,
                      self.spread_model, self.spreaderr_model]
 
-    def get_fracdet(self):
+        self.fracdet = None
+
+    @property
+    def load_fracdet(self):
         """
         Load-in and return the fracdet map if it exists.
         """
@@ -46,7 +49,8 @@ class Survey():
         else:
             print('No fracdet map specified ...')
             fracdet = None
-        return(fracdet)
+        #return(fracdet)
+        self.fracdet = fracdet
 
     def get_neighbors(self, ra, dec):
         """

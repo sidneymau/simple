@@ -21,7 +21,7 @@ import simple.survey
 
 #------------------------------------------------------------------------------
 
-def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold=mag_max, fracdet=None):
+def search_by_distance(survey, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold=mag_max):
     """
     Idea: 
     Send a data extension that goes to faint magnitudes, e.g., g < 24.
@@ -29,8 +29,6 @@ def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_selec
     magnitude threshold, e.g., g < 23, so not susceptible to variations 
     in depth. Then compute the local field density using a small annulus 
     around each individual hotspot, e.g., radius 0.3 to 0.5 deg.
-
-    fracdet corresponds to a fracdet map (numpy array, assumed to be EQUATORIAL and RING)
     """
 
     print('Distance = {:0.1f} kpc (m-M = {:0.1f})').format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus)
@@ -40,7 +38,7 @@ def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_selec
     iso.metallicity = 0.0001
     iso.distance_modulus = distance_modulus
 
-    cut = cut_isochrone_path(data[mag_dered_1], data[mag_dered_2], data[mag_err_1], data[mag_err_2], iso, radius=0.1)
+    cut = simple_utils.cut_isochrone_path(data[mag_dered_1], data[mag_dered_2], data[mag_err_1], data[mag_err_2], iso, radius=0.1)
     data = data[cut]
 
     print('{} objects left after isochrone cut...').format(len(data))
@@ -49,7 +47,7 @@ def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_selec
         return [], [], [], [], [], [], [], []
 
     # Compute characteristic density at this distance
-    characteristic_density = compute_char_density(nside, data, ra_select, dec_select, mag_max, fracdet)
+    characteristic_density = simple_utils.compute_char_density(survey.nside, data, ra_select, dec_select, mag_max, survey.fracdet)
 
     ra_peak_array = []
     dec_peak_array = []
@@ -62,13 +60,13 @@ def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_selec
 
     proj = ugali.utils.projector.Projector(ra_select, dec_select)
 
-    x_peak_array, y_peak_array, angsep_peak_array = find_peaks(nside, data, characteristic_density, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold, fracdet)
+    x_peak_array, y_peak_array, angsep_peak_array = simple_utils.find_peaks(survey.nside, data, characteristic_density, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold, survey.fracdet)
 
     for x_peak, y_peak, angsep_peak in itertools.izip(x_peak_array, y_peak_array, angsep_peak_array):
-        characteristic_density_local = compute_local_char_density(nside, data, characteristic_density, ra_select, dec_select, x_peak, y_peak, angsep_peak, mag_max, fracdet)
+        characteristic_density_local = simple_utils.compute_local_char_density(survey.nside, data, characteristic_density, ra_select, dec_select, x_peak, y_peak, angsep_peak, mag_max, survey.fracdet)
         # Aperture fitting
         print('Fitting aperture to hotspot...')
-        ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = fit_aperture(proj, distance_modulus, characteristic_density_local, x_peak, y_peak, angsep_peak)
+        ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple_utils.fit_aperture(proj, distance_modulus, characteristic_density_local, x_peak, y_peak, angsep_peak)
         
         ra_peak_array.append(ra_peaks)
         dec_peak_array.append(dec_peaks)
@@ -139,13 +137,14 @@ if __name__ == '__main__':
 
     #--------------------------------------------------------------------------
 
-    fracdet = survey.get_fracdet()
+    #fracdet = survey.get_fracdet()
+    survey.load_fracdet
 
     #--------------------------------------------------------------------------
 
     distance_modulus_search_array = np.arange(16., survey.mag_max, 0.5)
 
-    ############################################################
+    #--------------------------------------------------------------------------
     
     ra_peak_array = []
     dec_peak_array = [] 
@@ -158,7 +157,7 @@ if __name__ == '__main__':
     n_model_peak_array = []
     
     for distance_modulus in distance_modulus_search_array:
-        ra_peaks, dec_peaks, r_peaks, sig_peaks, dist_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple.simple_utils.search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, mag_max, fracdet)
+        ra_peaks, dec_peaks, r_peaks, sig_peaks, dist_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple.simple_utils.search_by_distance(survey, data, distance_modulus, pix_nside_select, ra_select, dec_select, mag_max)
         ra_peak_array.append(ra_peaks)
         dec_peak_array.append(dec_peaks)
         r_peak_array.append(r_peaks)
@@ -222,13 +221,13 @@ if __name__ == '__main__':
     
     # Write output
     if (len(sig_peak_array) > 0):
-        simple.simple_utils.write_output(results_dir, nside, pix_nside_select, ra_peak_array, dec_peak_array, r_peak_array, distance_modulus_array, 
+        simple.simple_utils.write_output(results_dir, survey.nside, pix_nside_select, ra_peak_array, dec_peak_array, r_peak_array, distance_modulus_array, 
                                  n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, 
                                  sig_peak_array, mc_source_id_array, mode, outfile)
     else:
         print('No significant hotspots found.')
         nan_array = [np.nan]
-        simple.simple_utils.write_output(results_dir, nside, pix_nside_select,
+        simple.simple_utils.write_output(results_dir, survey.nside, pix_nside_select,
                                  nan_array, nan_array, nan_array, nan_array, 
                                  nan_array, nan_array, nan_array, nan_array,
                                  [mc_source_id], mode, outfile)

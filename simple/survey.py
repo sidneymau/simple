@@ -8,9 +8,14 @@ import os
 
 import numpy as np
 import healpy as hp
+import fitsio as fits
+import scipy.interpolate
+import scipy.ndimage
+import itertools
 
 import ugali.utils.healpix
 import ugali.utils.projector
+import ugali.isochrone
 
 #------------------------------------------------------------------------------
 
@@ -37,7 +42,7 @@ class Survey():
                      self.mag_dered_1, self.mag_dered_2,
                      self.spread_model, self.spreaderr_model]
 
-        self.fracdet = None
+        self.fracdet = self.load_fracdet
 
     @property
     def load_fracdet(self):
@@ -98,14 +103,13 @@ class Region():
     def __init__(self, survey, ra, dec):
         self.survey = survey
         self.nside = self.survey.nside
+        self.fracdet = self.survey.fracdet
 
         self.ra = ra
         self.dec = dec
         self.proj = ugali.utils.projector.Projector(self.ra, self.dec)
         self.pix_center = ugali.utils.healpix.angToPix(self.nside, self.ra, self.dec)
         self.pix_neighbors = np.concatenate([[self.pix_center], hp.get_all_neighbours(self.nside, self.pix_center)])
-
-        self.fracdet = self.survey.fracdet
 
     def get_data(self):
         return(self.survey.get_data(self.pix_neighbors))
@@ -121,7 +125,7 @@ class Region():
         Compute the characteristic density of a region
         Convlve the field and find overdensity peaks
         """
-    
+
         cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
     
         x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
@@ -228,14 +232,14 @@ class Region():
             mean_fracdet = np.mean(fracdet_zero[subpix_annulus])
             print('mean_fracdet {}'.format(mean_fracdet))
             if mean_fracdet < 0.5:
-                characteristic_density_local = self.characteristic_density
+                characteristic_density_local = self.characteristic_density(data)
                 print('characteristic_density_local baseline {}').format(characteristic_density_local)
             else:
                 # Check pixels in annulus with complete coverage
                 subpix_annulus_region = np.intersect1d(subpix_region_array, subpix_annulus)
                 print('{} percent pixels with complete coverage'.format(float(len(subpix_annulus_region)) / len(subpix_annulus)))
                 if (float(len(subpix_annulus_region)) / len(subpix_annulus)) < 0.25:
-                    characteristic_density_local = self.characteristic_density
+                    characteristic_density_local = self.characteristic_density(data)
                     print('characteristic_density_local spotty {}'.format(characteristic_density_local))
                 else:
                     characteristic_density_local = float(np.sum(np.in1d(subpix, subpix_annulus_region))) \
@@ -254,7 +258,7 @@ class Region():
             h = np.histogram(phi, bins=np.linspace(-180., 180., 13))[0]
             if np.sum(h > 0) < 10 or np.sum(h > 0.5 * np.median(h)) < 10:
                 #angsep_peak = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
-                characteristic_density_local = characteristic_density
+                characteristic_density_local = self.characteristic_density(data)
     
         print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
     
@@ -265,8 +269,6 @@ class Region():
         Convolve field to find characteristic density and peaks within the selected pixel
         """
 
-        characteristic_density = self.characteristic_density(data)
-    
         # convolve field and find peaks
         cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
     
@@ -286,12 +288,12 @@ class Region():
         factor_array = np.arange(1., 5., 0.05)
         rara, decdec = self.proj.imageToSphere(xx.flatten(), yy.flatten())
         cutcut = (ugali.utils.healpix.angToPix(self.nside, rara, decdec) == pix_nside_select).reshape(xx.shape)
-        threshold_density = 5 * characteristic_density * area
+        threshold_density = 5 * self.characteristic_density(data) * area
         for factor in factor_array:
-            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (area * characteristic_density * factor))
+            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (area * self.characteristic_density(data) * factor))
             #print 'factor', factor, n_region, n_region < 10
             if n_region < 10:
-                threshold_density = area * characteristic_density * factor
+                threshold_density = area * self.characteristic_density(data) * factor
                 break
     
         h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > threshold_density)

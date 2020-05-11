@@ -46,8 +46,6 @@ def search_by_distance(survey, region, data, distance_modulus):
     if (len(data) == 0):
         return [], [], [], [], [], [], [], []
 
-    characteristic_density = region.characteristic_density(data)
-
     ra_peak_array = []
     dec_peak_array = []
     r_peak_array = []
@@ -147,7 +145,7 @@ if __name__ == '__main__':
     n_model_peak_array = []
     
     for distance_modulus in distance_modulus_search_array:
-        ra_peaks, dec_peaks, r_peaks, sig_peaks, dist_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple.simple_utils.search_by_distance(survey, region, data[stars], distance_modulus)
+        ra_peaks, dec_peaks, r_peaks, sig_peaks, dist_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = simple.simple_utils.search_by_distance(survey, region, stars, distance_modulus)
         ra_peak_array.append(ra_peaks)
         dec_peak_array.append(dec_peaks)
         r_peak_array.append(r_peaks)

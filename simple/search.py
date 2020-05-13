@@ -113,12 +113,12 @@ def search_by_distance(survey, region, distance_modulus):
 
     print('Distance = {:0.1f} kpc (m-M = {:0.1f})').format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus)
 
-    iso = ugali.isochrone.factory(name=survey.isoname, survey=survey.isosurvey, band_1=survey.band_1.lower(), band_2=survey.band_2.lower())
-    iso.age = 12.
-    iso.metallicity = 0.0001
+    iso = ugali.isochrone.factory(name=survey.isochrone['name'], survey=survey.isochrone['survey'], band_1=survey.band_1.lower(), band_2=survey.band_2.lower())
+    iso.age = survey.isochrone['age']
+    iso.metallicity = survey.isochrone['metallicity']
     iso.distance_modulus = distance_modulus
 
-    cut = cut_isochrone_path(region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], iso, survey.mag_max, radius=0.1)
+    cut = cut_isochrone_path(region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], iso, survey.catalog['mag_max'], radius=0.1)
     data = region.data[cut]
 
     print('{} objects left after isochrone cut...').format(len(data))
@@ -172,11 +172,9 @@ if __name__ == '__main__':
                         help='config file')
     parser.add_argument('--outfile',type=str,required=False,
                         help='Output file')
-    parser.add_argument('--logfile',type=str,required=False,
-                        help='Log file')
-    parser.add_argument('--ra',type=float,required=False,
+    parser.add_argument('--ra',type=float,required=True,
                         help='Target RA')
-    parser.add_argument('--dec',type=float,required=False,
+    parser.add_argument('--dec',type=float,required=True,
                         help='Target DEC')
     args = vars(parser.parse_args())
 
@@ -201,7 +199,7 @@ if __name__ == '__main__':
 
     #--------------------------------------------------------------------------
 
-    distance_modulus_search_array = np.arange(16., survey.mag_max, 0.5)
+    distance_modulus_search_array = np.arange(16., survey.catalog['mag_max'], 0.5)
 
     ra_peak_array = []
     dec_peak_array = [] 
@@ -277,14 +275,14 @@ if __name__ == '__main__':
     
     # Write output
     if (len(sig_peak_array) > 0):
-        write_output(survey.output['results_dir'], survey.nside, region.pix_center, ra_peak_array, dec_peak_array,
+        write_output(survey.output['results_dir'], survey.catalog['nside'], region.pix_center, ra_peak_array, dec_peak_array,
                      r_peak_array, distance_modulus_array, 
                      n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, 
                      sig_peak_array, mc_source_id_array, 0, args['outfile'])
     else:
         print('No significant hotspots found.')
         nan_array = [np.nan]
-        write_output(survey.output['results_dir'], survey.nside, region.pix_center,
+        write_output(survey.output['results_dir'], survey.catalog['nside'], region.pix_center,
                      nan_array, nan_array, nan_array, nan_array, 
                      nan_array, nan_array, nan_array, nan_array,
                      [mc_source_id], 0, args['outfile'])

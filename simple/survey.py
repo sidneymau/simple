@@ -26,33 +26,31 @@ class Survey():
     def __init__(self, iterable=(), **kwargs):
         self.__dict__.update(iterable, **kwargs)
 
-        self.mag_1 = self.mag.format(self.band_1.upper())
-        self.mag_2 = self.mag.format(self.band_2.upper())
-        self.mag_err_1 = self.mag_err.format(self.band_1.upper())
-        self.mag_err_2 = self.mag_err.format(self.band_2.upper())
-        #self.mag_dered_1 = self.mag_dered.format(self.band_1.upper())
-        #self.mag_dered_2 = self.mag_dered.format(self.band_2.upper())
+        self.mag_1 = self.catalog['mag'].format(self.band_1.upper())
+        self.mag_2 = self.catalog['mag'].format(self.band_2.upper())
+        self.mag_err_1 = self.catalog['mag_err'].format(self.band_1.upper())
+        self.mag_err_2 = self.catalog['mag_err'].format(self.band_2.upper())
 
-        self.cols = [self.basis_1, self.basis_2,
+        self.cols = [self.catalog['basis_1'], self.catalog['basis_2'],
                      self.mag_1, self.mag_2,
                      self.mag_err_1, self.mag_err_2]
 
-        if self.reddening:
-            self.reddening_1 = self.reddening.format(self.band_1.upper())
-            self.reddening_2 = self.reddening.format(self.band_2.upper())
+        if self.catalog['reddening']:
+            self.reddening_1 = self.catalog['reddening'].format(self.band_1.upper())
+            self.reddening_2 = self.catalog['reddening'].format(self.band_2.upper())
             self.cols.append(self.reddening_1)
             self.cols.append(self.reddening_2)
 
-        self.fracdet = self.load_fracdet
+        self.load_fracdet
 
     @property
     def load_fracdet(self):
         """
         Load-in the fracdet map if it exists.
         """
-        if self.fracdet:
-            print('Reading fracdet map {} ...').format(self.fracdet)
-            fracdet = ugali.utils.healpix.read_map(self.fracdet)
+        if self.survey['fracdet']:
+            print('Reading fracdet map {} ...').format(self.survey['fracdet'])
+            fracdet = ugali.utils.healpix.read_map(self.survey['fracdet'])
         else:
             print('No fracdet map specified ...')
             fracdet = None
@@ -63,28 +61,28 @@ class Survey():
         """
         Return center healpixel and 8 nearest neighbors for a given ra, dec pair.
         """
-        pix_select = ugali.utils.healpix.angToPix(self.nside, ra, dec)
-        pix_neighbors = np.concatenate([[pix_select], hp.get_all_neighbours(self.nside, pix_select)])
+        pix_select = ugali.utils.healpix.angToPix(self.catalog.nside, ra, dec)
+        pix_neighbors = np.concatenate([[pix_select], hp.get_all_neighbours(self.catalog['nside'], pix_select)])
         return(pix_neighbors)
 
     def get_data(self, pixels):
         """
         Load-in and return data for a list of healpixels as a numpy array.
         """
-        if self.quality:
-            sel = '{} && {}'.format(self.stars, self.quality)
+        if self.catalog['quality']:
+            sel = '{} && {}'.format(self.catalog['stars'], self.catalog['quality'])
         else:
-            sel = self.stars
+            sel = self.catalog['stars']
         data_array = []
         for pixel in pixels:
-            inlist = glob.glob('{}/*_{:05d}.fits'.format(self.datadir, pixel))
+            inlist = glob.glob('{}/*_{:05d}.fits'.format(self.catalog['dirname'], pixel))
             for infile in inlist:
                 if not os.path.exists(infile):
                     continue
                 with fits.FITS(infile,vstorage='object') as f:
                     w = f[1].where(sel)
                     d = f[1][self.cols][w]
-                    if self.reddening:
+                    if self.catalog['reddening']:
                         d[self.mag_1] -= d[self.reddening_1]
                         d[self.mag_2] -= d[self.reddening_2]
                         d = d[[name for name in d.dtype.names if name not in [self.reddening_1, self.reddening_2]]]
@@ -114,7 +112,7 @@ class Region():
     """
     def __init__(self, survey, ra, dec):
         self.survey = survey
-        self.nside = self.survey.nside
+        self.nside = self.survey.catalog['nside']
         self.fracdet = self.survey.fracdet
 
         self.ra = ra
@@ -141,9 +139,9 @@ class Region():
         Convlve the field and find overdensity peaks
         """
 
-        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.catalog['mag_max'])
     
-        x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
+        x, y = self.proj.sphereToImage(data[self.survey.catalog['basis_1']][cut_magnitude_threshold], data[self.survey.catalog['basis_2']][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
         delta_x = 0.01
         area = delta_x**2
@@ -181,7 +179,7 @@ class Region():
             nside_fracdet = hp.npix2nside(len(self.fracdet))
             
             subpix_region_array = []
-            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.basis_1], data[survey.basis_2])):
+            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.catalog['basis_1']], data[survey.catalog['basis_2']])):
                 subpix_region_array.append(ugali.utils.healpix.subpixel(self.pix_center, self.nside, nside_fracdet))
             subpix_region_array = np.concatenate(subpix_region_array)
     
@@ -192,8 +190,8 @@ class Region():
             # smau: this doesn't seem to be used in the non-local density estimation
             subpix_region_array = subpix_region_array[fracdet[subpix_region_array] > 0.99]
             subpix = ugali.utils.healpix.angToPix(nside_fracdet, 
-                                                  data[survey.basis_1][cut_magnitude_threshold], 
-                                                  data[survey.basis_2][cut_magnitude_threshold])
+                                                  data[survey.catalog['basis_1']][cut_magnitude_threshold], 
+                                                  data[survey.catalog['basis_2']][cut_magnitude_threshold])
             characteristic_density_fracdet = float(np.sum(np.in1d(subpix, subpix_region_array))) \
                                              / (hp.nside2pixarea(nside_fracdet, degrees=True) * len(subpix_region_array)) # deg^-2
             print('Characteristic density fracdet = {:0.1f} deg^-2').format(characteristic_density_fracdet)
@@ -210,11 +208,11 @@ class Region():
         Compute the local characteristic density of a region
         """
     
-        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.catalog['mag_max'])
 
         characteristic_density = self.characteristic_density(data)
     
-        x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
+        x, y = self.proj.sphereToImage(data[self.survey.catalog['basis_1']][cut_magnitude_threshold], data[self.survey.catalog['basis_2']][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
     
         # If fracdet map is available, use that information to either compute local density,
@@ -228,7 +226,7 @@ class Region():
             nside_fracdet = hp.npix2nside(len(self.fracdet))
             
             subpix_region_array = []
-            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.basis_1], data[survey.basis_2])):
+            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.catalog['basis_1']], data[survey.catalog['basis_2']])):
                 subpix_region_array.append(ugali.utils.healpix.subpixel(self.pix_center, self.nside, nside_fracdet))
             subpix_region_array = np.concatenate(subpix_region_array)
     
@@ -238,8 +236,8 @@ class Region():
     
             subpix_region_array = subpix_region_array[self.fracdet[subpix_region_array] > 0.99]
             subpix = ugali.utils.healpix.angToPix(nside_fracdet, 
-                                                  data[survey.basis_1][cut_magnitude_threshold], 
-                                                  data[survey.basis_2][cut_magnitude_threshold])
+                                                  data[survey.catalog['basis_1']][cut_magnitude_threshold], 
+                                                  data[survey.catalog['basis_2']][cut_magnitude_threshold])
     
             # This is where the local computation begins
             ra_peak, dec_peak = self.proj.imageToSphere(x_peak, y_peak)
@@ -287,11 +285,11 @@ class Region():
         """
 
         # convolve field and find peaks
-        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+        cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.catalog['mag_max'])
 
         characteristic_density = self.characteristic_density(data)
     
-        x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
+        x, y = self.proj.sphereToImage(data[self.survey.catalog['basis_1']][cut_magnitude_threshold], data[self.survey.catalog['basis_2']][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
         delta_x = 0.01
         area = delta_x**2

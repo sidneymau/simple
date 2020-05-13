@@ -13,50 +13,49 @@ import simple.survey
 
 #----------------------------------------------------------
 
-config = {'survey': {'name'       : 'des',
-                     'fracdet'    : None,
-                     'datadir'    : '/data/des40.b/data/y6a1/gold/1.1/healpix',
-                     'nside'      : 32,
-                     'mag_max'    : 24.5,
-                     'basis_1'    : 'RA',
-                     'basis_2'    : 'DEC',
-                     'band_1'     : 'G',
-                     'band_2'     : 'R',
-                     'mag'        : 'SOF_PSF_MAG_{}',
-                     'mag_err'    : 'SOF_PSF_MAG_ERR_{}',
-                     'mag_dered'  : 'SOF_PSF_MAG_CORRECTED_{}',
-                     'reddening'  : 'A_FIDUCIAL_{}',
-                     'quality'    : 'SOF_PSF_MAG_G < 24.5',
-                     'stars'      : 'WAVG_SPREAD_MODEL_G < 0.003 + SPREADERR_MODEL_G'},
-          'iso': {'name'   : 'Bressan2012',
-                  'survey' : 'des'},
+config = {'survey': {'name'    : 'des',
+                     'fracdet' : None},
+          'band_1' : 'G',
+          'band_2' : 'R',
+          'catalog' : {'dirname'   : '/data/des40.b/data/y6a1/gold/1.1/healpix',
+                       'nside'     : 32,
+                       'mag_max'   : 24.5,
+                       'basis_1'   : 'RA',
+                       'basis_2'   : 'DEC',
+                       'mag'       : 'SOF_PSF_MAG_{}',
+                       'mag_err'   : 'SOF_PSF_MAG_ERR_{}',
+                       'reddening' : 'A_FIDUCIAL_{}',
+                       'quality'   : 'SOF_PSF_MAG_G < 24.5',
+                       'stars'     : 'WAVG_SPREAD_MODEL_G < 0.003 + SPREADERR_MODEL_G'},
+          'isochrone': {'name'        : 'Bressan2012',
+                        'survey'      : 'des',
+                        'age'         : 12,
+                        'metallicity' : 0.0001},
           'output' : {'results_dir' : 'results_dir',
                       'log_dir'     : 'log_dir',
                       'save_dir'    : 'plot_dir'},
-          'jobs': 20
+          'batch' : {'max_jobs' : 20}
          }
 
-def init_dirs(survey):
-    results_dir = os.path.join(os.getcwd(), survey.output['results_dir'])
+def init_dirs(cfg):
+    results_dir = os.path.join(os.getcwd(), cfg['output']['results_dir'])
     if not os.path.exists(results_dir):
         os.mkdir(results_dir)
 
-    log_dir = os.path.join(os.getcwd(), survey.output['log_dir'])
+    log_dir = os.path.join(os.getcwd(), cfg['output']['log_dir'])
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
 
-    save_dir = os.path.join(os.getcwd(), survey.output['save_dir'])
+    save_dir = os.path.join(os.getcwd(), cfg['output']['save_dir'])
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
 if __name__ == '__main__':
-    with open(os.path.join(os.getcwd(), 'config.yaml'), 'w') as outfile:
+    cfgfile = 'config.yaml'
+    with open(os.path.join(os.getcwd(), cfgfile), 'w') as outfile:
         yaml.dump(config, outfile, default_flow_style=False)
 
-    #with open('config.yaml', 'r') as ymlfile:
-    #    cfg = yaml.load(ymlfile)
-    #    survey = simple.survey.Survey(cfg)
+    with open(cfgfile, 'r') as ymlfile:
+        cfg = yaml.load(ymlfile)
 
-    #init_dirs(survey)
-
-    ##import pdb;pdb.set_trace()
+    init_dirs(cfg)

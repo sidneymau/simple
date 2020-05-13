@@ -12,11 +12,14 @@ batch:
 survey: 'default'
 
 nside   : 32
-datadir : '/home/s1/kadrlica/projects/y3a2/data/gold/v2.0/skim_gri_ext_0_3'
+datadir : '/data/des40.b/data/y6a1/gold/1.1/healpix'
 
 isoname   : 'Bressan2012'
 isosurvey : 'des'
 mag_max   : 24.5
+
+quality: 'SOF_PSF_MAG_G < 24.5'
+stars: 'WAVG_SPREAD_MODEL_G < 0.003 + SPREADERR_MODEL_G'
 
 object_list    : 'object_list.csv'
 candidate_list : 'candidate_list.fits'
@@ -27,13 +30,13 @@ basis_2: 'DEC'
 band_1: 'G'
 band_2: 'R'
 
-mag       : 'SOF_PSF_MAG_CORRECTED_{}'
+mag       : 'SOF_PSF_MAG_{}'
 mag_err   : 'SOF_PSF_MAG_ERR_{}'
-mag_dered : 'MAG_DERED_{}'
+reddening : 'A_FIDUCIAL_{}'
 
 mode           : 0 # 0: real, 1: real+sim, 2: candidates
-sim_population : None
-sim_dir        : None
+sim_population : null
+sim_dir        : null
 
-fracdet_gz : None
-fracdet    : None
+fracdet_gz : null
+fracdet    : null

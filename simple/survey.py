@@ -37,6 +37,12 @@ class Survey():
                      self.mag_1, self.mag_2,
                      self.mag_err_1, self.mag_err_2]
 
+        if self.reddening:
+            self.reddening_1 = self.reddening.format(self.band_1.upper())
+            self.reddening_2 = self.reddening.format(self.band_2.upper())
+            self.cols.append(self.reddening_1)
+            self.cols.append(self.reddening_2)
+
         self.fracdet = self.load_fracdet
 
     @property
@@ -44,7 +50,7 @@ class Survey():
         """
         Load-in the fracdet map if it exists.
         """
-        if (self.fracdet is not None) and (self.fracdet.lower().strip() != 'none') and (self.fracdet != ''):
+        if self.fracdet:
             print('Reading fracdet map {} ...').format(self.fracdet)
             fracdet = ugali.utils.healpix.read_map(self.fracdet)
         else:
@@ -65,16 +71,7 @@ class Survey():
         """
         Load-in and return data for a list of healpixels as a numpy array.
         """
-        #data_array = []
-        #for pixel in pixels:
-        #    inlist = glob.glob('{}/*_{:05d}.fits'.format(self.datadir, pixel))
-        #    for infile in inlist:
-        #        if not os.path.exists(infile):
-        #            continue
-        #        data_array.append(fits.read(infile, columns=self.cols))
-        #data = np.concatenate(data_array)
-        #return(data)
-        if self.quality != None:
+        if self.quality:
             sel = '{} && {}'.format(self.stars, self.quality)
         else:
             sel = self.stars
@@ -84,10 +81,14 @@ class Survey():
             for infile in inlist:
                 if not os.path.exists(infile):
                     continue
-                f = fits.FITS(infile,vstorage='object')
-                w = f[1].where(sel)
-                d = f[1][self.cols][w]
-                data_array.append(d)
+                with fits.FITS(infile,vstorage='object') as f:
+                    w = f[1].where(sel)
+                    d = f[1][self.cols][w]
+                    if self.reddening:
+                        d[self.mag_1] -= d[self.reddening_1]
+                        d[self.mag_2] -= d[self.reddening_2]
+                        d = d[[name for name in d.dtype.names if name not in [self.reddening_1, self.reddening_2]]]
+                    data_array.append(d)
         data = np.concatenate(data_array)
         return(data)
 

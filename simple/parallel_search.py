@@ -5,6 +5,7 @@ Perform simple binning search
 __author__ = "Sidney Mau"
 
 import glob
+import argparse
 import subprocess
 import yaml
 
@@ -12,11 +13,11 @@ import ugali.utils.healpix
 
 #------------------------------------------------------------------------------
 
-def submit_job(cfg, ra, dec, pix):
-    outfile = '{}/results_nside_{}_{}.txt'.format(results_dir, nside, pix)
-    logfile = '{}/results_nside_{}_{}.log'.format(log_dir, nside, pix)
-    batch = 'csub -n {} -o {} '.format(jobs, logfile)
-    command = 'python {}/search.py --config {} --ra {:0.2f} --dec {:0.2f} --outfile {} --logfile {}'.format(simple_dir, cfgfile, ra, dec, mc_source_id, outfile, logfile)
+def submit_job(cfgfile, cfg, ra, dec, pix):
+    outfile = '{}/results_nside_{}_{}.txt'.format(cfg['output']['results_dir'], cfg['nside'], pix)
+    logfile = '{}/results_nside_{}_{}.log'.format(cfg['output']['log_dir'], cfg['nside'], pix)
+    batch = 'csub -n {} -o {} '.format(cfg['batch']['jobs'], logfile)
+    command = 'python {}/search.py --config {} --ra {:0.2f} --dec {:0.2f} --outfile {} --logfile {}'.format(cfg['setup']['simple_dir'], cfgfile, ra, dec, outfile, logfile)
     command_queue = batch + command
 
     print(command_queue)
@@ -48,5 +49,5 @@ if __name__ == '__main__':
     for ii in range(0, len(pix_nside)):
         ra, dec = ugali.utils.healpix.pixToAng(cfg['nside'], pix_nside[ii])
     
-        submit_job(args['config'], ra, dec, pix_nside[ii])
+        submit_job(args['config'], cfg, ra, dec, pix_nside[ii])
         print('({}/{})').format(ii+1, len(pix_nside))

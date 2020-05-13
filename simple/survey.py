@@ -30,17 +30,12 @@ class Survey():
         self.mag_2 = self.mag.format(self.band_2.upper())
         self.mag_err_1 = self.mag_err.format(self.band_1.upper())
         self.mag_err_2 = self.mag_err.format(self.band_2.upper())
-        self.mag_dered_1 = self.mag_dered.format(self.band_1.upper())
-        self.mag_dered_2 = self.mag_dered.format(self.band_2.upper())
-
-        self.spread_model = 'WAVG_SPREAD_MODEL_{}'.format(self.band_1.upper())
-        self.spreaderr_model = 'SPREADERR_MODEL_{}'.format(self.band_1.upper())
+        #self.mag_dered_1 = self.mag_dered.format(self.band_1.upper())
+        #self.mag_dered_2 = self.mag_dered.format(self.band_2.upper())
 
         self.cols = [self.basis_1, self.basis_2,
                      self.mag_1, self.mag_2,
-                     self.mag_err_1, self.mag_err_2,
-                     self.mag_dered_1, self.mag_dered_2,
-                     self.spread_model, self.spreaderr_model]
+                     self.mag_err_1, self.mag_err_2]
 
         self.fracdet = self.load_fracdet
 
@@ -70,29 +65,45 @@ class Survey():
         """
         Load-in and return data for a list of healpixels as a numpy array.
         """
+        #data_array = []
+        #for pixel in pixels:
+        #    inlist = glob.glob('{}/*_{:05d}.fits'.format(self.datadir, pixel))
+        #    for infile in inlist:
+        #        if not os.path.exists(infile):
+        #            continue
+        #        data_array.append(fits.read(infile, columns=self.cols))
+        #data = np.concatenate(data_array)
+        #return(data)
+        if self.quality != None:
+            sel = '{} && {}'.format(self.stars, self.quality)
+        else:
+            sel = self.stars
         data_array = []
         for pixel in pixels:
             inlist = glob.glob('{}/*_{:05d}.fits'.format(self.datadir, pixel))
             for infile in inlist:
                 if not os.path.exists(infile):
                     continue
-                data_array.append(fits.read(infile, columns=self.cols))
+                f = fits.FITS(infile,vstorage='object')
+                w = f[1].where(sel)
+                d = f[1][self.cols][w]
+                data_array.append(d)
         data = np.concatenate(data_array)
         return(data)
 
-    def get_stars(self, data):
-        """
-        Return boolean list of star-like objects.
-        """
-        sel = (data['WAVG_SPREAD_MODEL_G'] < 0.003 + data['SPREADERR_MODEL_G'])
-        return(sel)
+    #def get_stars(self, data):
+    #    """
+    #    Return boolean list of star-like objects.
+    #    """
+    #    sel = (data['WAVG_SPREAD_MODEL_G'] < 0.003 + data['SPREADERR_MODEL_G'])
+    #    return(sel)
 
-    def get_galaxies(self, data):
-        """
-        Return boolean list of galaxy-like objects.
-        """
-        sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
-        return(sel)
+    #def get_galaxies(self, data):
+    #    """
+    #    Return boolean list of galaxy-like objects.
+    #    """
+    #    sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
+    #    return(sel)
 
 #------------------------------------------------------------------------------
 
@@ -114,11 +125,14 @@ class Region():
     def get_data(self):
         return(self.survey.get_data(self.pix_neighbors))
 
-    def get_stars(self, data):
-        return(self.survey.get_stars(data))
+    def load_data(self):
+        self.data = self.get_data()
 
-    def get_galaxies(self, data):
-        return(self.survey.get_galaxies(data))
+    #def get_stars(self, data):
+    #    return(self.survey.get_stars(data))
+
+    #def get_galaxies(self, data):
+    #    return(self.survey.get_galaxies(data))
 
     def characteristic_density(self, data):
         """
@@ -196,6 +210,8 @@ class Region():
         """
     
         cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+
+        characteristic_density = self.characteristic_density(data)
     
         x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
@@ -232,14 +248,14 @@ class Region():
             mean_fracdet = np.mean(fracdet_zero[subpix_annulus])
             print('mean_fracdet {}'.format(mean_fracdet))
             if mean_fracdet < 0.5:
-                characteristic_density_local = self.characteristic_density(data)
+                characteristic_density_local = characteristic_density
                 print('characteristic_density_local baseline {}').format(characteristic_density_local)
             else:
                 # Check pixels in annulus with complete coverage
                 subpix_annulus_region = np.intersect1d(subpix_region_array, subpix_annulus)
                 print('{} percent pixels with complete coverage'.format(float(len(subpix_annulus_region)) / len(subpix_annulus)))
                 if (float(len(subpix_annulus_region)) / len(subpix_annulus)) < 0.25:
-                    characteristic_density_local = self.characteristic_density(data)
+                    characteristic_density_local = characteristic_density
                     print('characteristic_density_local spotty {}'.format(characteristic_density_local))
                 else:
                     characteristic_density_local = float(np.sum(np.in1d(subpix, subpix_annulus_region))) \
@@ -258,7 +274,7 @@ class Region():
             h = np.histogram(phi, bins=np.linspace(-180., 180., 13))[0]
             if np.sum(h > 0) < 10 or np.sum(h > 0.5 * np.median(h)) < 10:
                 #angsep_peak = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
-                characteristic_density_local = self.characteristic_density(data)
+                characteristic_density_local = characteristic_density
     
         print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
     
@@ -271,6 +287,8 @@ class Region():
 
         # convolve field and find peaks
         cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.mag_max)
+
+        characteristic_density = self.characteristic_density(data)
     
         x, y = self.proj.sphereToImage(data[self.survey.basis_1][cut_magnitude_threshold], data[self.survey.basis_2][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
@@ -287,13 +305,13 @@ class Region():
     
         factor_array = np.arange(1., 5., 0.05)
         rara, decdec = self.proj.imageToSphere(xx.flatten(), yy.flatten())
-        cutcut = (ugali.utils.healpix.angToPix(self.nside, rara, decdec) == pix_nside_select).reshape(xx.shape)
-        threshold_density = 5 * self.characteristic_density(data) * area
+        cutcut = (ugali.utils.healpix.angToPix(self.nside, rara, decdec) == self.pix_center).reshape(xx.shape)
+        threshold_density = 5 * characteristic_density * area
         for factor in factor_array:
-            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (area * self.characteristic_density(data) * factor))
+            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (area * characteristic_density * factor))
             #print 'factor', factor, n_region, n_region < 10
             if n_region < 10:
-                threshold_density = area * self.characteristic_density(data) * factor
+                threshold_density = area * characteristic_density * factor
                 break
     
         h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > threshold_density)
@@ -309,7 +327,7 @@ class Region():
             #print index, np.max(h_g * (h_region == index))
             
             #angsep_peak = np.sqrt((x_full - x_peak)**2 + (y_full - y_peak)**2) # Use full magnitude range, NOT TESTED!!!
-            angsep_peak = np.sqrt((x - x_peak)**2 + (y - y_peak)**2) # Impose magnitude threshold
+            angsep_peak = np.sqrt((x-x_peak)**2 + (y-y_peak)**2) # Impose magnitude threshold
     
             x_peak_array.append(x_peak)
             y_peak_array.append(y_peak)
@@ -317,7 +335,7 @@ class Region():
         
         return x_peak_array, y_peak_array, angsep_peak_array
     
-    def fit_aperture(self, distance_modulus, x_peak, y_peak, angsep_peak):
+    def fit_aperture(self, data, distance_modulus, x_peak, y_peak, angsep_peak):
         """
         Fit aperture by varing radius and computing the significance
         """
@@ -348,7 +366,7 @@ class Region():
             n_obs_array[ii] = n_obs
             n_model_array[ii] = n_model
     
-        ra_peak, dec_peak = proj.imageToSphere(x_peak, y_peak)
+        ra_peak, dec_peak = self.proj.imageToSphere(x_peak, y_peak)
     
         index_peak = np.argmax(sig_array)
         r_peak = size_array[index_peak]

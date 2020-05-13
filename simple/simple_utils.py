@@ -26,49 +26,49 @@ import ugali.isochrone
 
 ########################################################################
 
-with open('config.yaml', 'r') as ymlfile:
-    cfg = yaml.load(ymlfile)
-
-    survey = cfg['survey']
-    nside   = cfg[survey]['nside']
-    datadir = cfg[survey]['datadir']
-    isoname = cfg[survey]['isoname']
-    isosurvey = cfg[survey]['isosurvey']
-    mag_max = cfg[survey]['mag_max']
-    basis_1 = cfg[survey]['basis_1']
-    basis_2 = cfg[survey]['basis_2']
-
-    mode = cfg[survey]['mode']
-    sim_population = cfg[survey]['sim_population']
-    sim_dir = cfg[survey]['sim_dir']
-
-    fracdet_map = cfg[survey]['fracdet']
-    
-    #mag_g = cfg[survey]['mag_g']
-    #mag_r = cfg[survey]['mag_r']
-    #mag_g_err = cfg[survey]['mag_g_err']
-    #mag_r_err = cfg[survey]['mag_r_err']
-
-    band_1 = cfg[survey]['band_1']
-    band_2 = cfg[survey]['band_2']
-    mag = cfg[survey]['mag']
-    mag_err = cfg[survey]['mag_err']
-    mag_dered = cfg[survey]['mag_dered']
-
-    results_dir = os.path.join(os.getcwd(), cfg['output']['results_dir'])
-    if not os.path.exists(results_dir):
-        os.mkdir(results_dir)
-
-# construct mags
-mag_1 = mag.format(band_1.upper())
-mag_2 = mag.format(band_2.upper())
-mag_err_1 = mag_err.format(band_1.upper())
-mag_err_2 = mag_err.format(band_2.upper())
-mag_dered_1 = mag_dered.format(band_1.upper())
-mag_dered_2 = mag_dered.format(band_2.upper())
-
-# specify fits columns
-#COLS = [basis_1, basis_2, mag_1, mag_2, mag_err_1, mag_err_2, mag_dered_1, mag_dered_2,...]
+#with open('config.yaml', 'r') as ymlfile:
+#    cfg = yaml.load(ymlfile)
+#
+#    survey = cfg['survey']
+#    nside   = cfg[survey]['nside']
+#    datadir = cfg[survey]['datadir']
+#    isoname = cfg[survey]['isoname']
+#    isosurvey = cfg[survey]['isosurvey']
+#    mag_max = cfg[survey]['mag_max']
+#    basis_1 = cfg[survey]['basis_1']
+#    basis_2 = cfg[survey]['basis_2']
+#
+#    mode = cfg[survey]['mode']
+#    sim_population = cfg[survey]['sim_population']
+#    sim_dir = cfg[survey]['sim_dir']
+#
+#    fracdet_map = cfg[survey]['fracdet']
+#    
+#    #mag_g = cfg[survey]['mag_g']
+#    #mag_r = cfg[survey]['mag_r']
+#    #mag_g_err = cfg[survey]['mag_g_err']
+#    #mag_r_err = cfg[survey]['mag_r_err']
+#
+#    band_1 = cfg[survey]['band_1']
+#    band_2 = cfg[survey]['band_2']
+#    mag = cfg[survey]['mag']
+#    mag_err = cfg[survey]['mag_err']
+#    mag_dered = cfg[survey]['mag_dered']
+#
+#    results_dir = os.path.join(os.getcwd(), cfg['output']['results_dir'])
+#    if not os.path.exists(results_dir):
+#        os.mkdir(results_dir)
+#
+## construct mags
+#mag_1 = mag.format(band_1.upper())
+#mag_2 = mag.format(band_2.upper())
+#mag_err_1 = mag_err.format(band_1.upper())
+#mag_err_2 = mag_err.format(band_2.upper())
+#mag_dered_1 = mag_dered.format(band_1.upper())
+#mag_dered_2 = mag_dered.format(band_2.upper())
+#
+## specify fits columns
+##COLS = [basis_1, basis_2, mag_1, mag_2, mag_err_1, mag_err_2, mag_dered_1, mag_dered_2,...]
 
 ########################################################################
 
@@ -223,7 +223,7 @@ def cut_isochrone_path(g, r, g_err, r_err, isochrone, radius=0.1, return_all=Fal
 
 ########################################################################
 
-def compute_char_density(nside, data, ra_select, dec_select, magnitude_threshold=mag_max, fracdet=None):
+def compute_char_density(nside, data, ra_select, dec_select, magnitude_threshold, fracdet=None):
     """
     Compute the characteristic density of a region
     Convlve the field and find overdensity peaks
@@ -294,7 +294,7 @@ def compute_char_density(nside, data, ra_select, dec_select, magnitude_threshold
 
     return characteristic_density
 
-def compute_local_char_density(nside, data, characteristic_density, ra_select, dec_select, x_peak, y_peak, angsep_peak, magnitude_threshold=mag_max, fracdet=None):
+def compute_local_char_density(nside, data, characteristic_density, ra_select, dec_select, x_peak, y_peak, angsep_peak, magnitude_threshold, fracdet=None):
     """
     Compute the local characteristic density of a region
     """
@@ -374,7 +374,7 @@ def compute_local_char_density(nside, data, characteristic_density, ra_select, d
 
 ########################################################################
 
-def find_peaks(nside, data, characteristic_density, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold=mag_max, fracdet=None):
+def find_peaks(nside, data, characteristic_density, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold, fracdet=None):
     """
     Convolve field to find characteristic density and peaks within the selected pixel
     """
@@ -486,7 +486,7 @@ def fit_aperture(proj, distance_modulus, characteristic_density_local, x_peak, y
 ########################################################################
 
 # mode = 0
-def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold=mag_max, fracdet=None):
+def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold, fracdet=None):
     """
     Idea: 
     Send a data extension that goes to faint magnitudes, e.g., g < 24.
@@ -558,7 +558,7 @@ def search_by_distance(nside, data, distance_modulus, pix_nside_select, ra_selec
 ########################################################################
 
 # mode = 1
-def search_by_simulation(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold=mag_max, fracdet=None):
+def search_by_simulation(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold, fracdet=None):
     """
     Idea: 
     Send a data extension that goes to faint magnitudes, e.g., g < 24.
@@ -634,7 +634,7 @@ def search_by_simulation(nside, data, distance_modulus, pix_nside_select, ra_sel
 ########################################################################
 
 # mode = 2
-def search_by_object(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold=mag_max, fracdet=None):
+def search_by_object(nside, data, distance_modulus, pix_nside_select, ra_select, dec_select, magnitude_threshold, fracdet=None):
     """
     Idea: 
     Send a data extension that goes to faint magnitudes, e.g., g < 24.

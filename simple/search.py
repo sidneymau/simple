@@ -96,10 +96,10 @@ def write_output(results_dir, nside, pix_nside_select, ra_peak_array, dec_peak_a
     #                                                                                                                     mc_source_id_array[ii]))
     data = [tuple(row) for row in np.stack([sig_peak_array, ra_peak_array, dec_peak_array, distance_modulus_array, r_peak_array, n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, mc_source_id_array], axis=-1)]
     arr = np.array(data, dtype=[('SIG', float), ('RA', float), ('DEC', float), ('MODULUS', float), ('R', float), ('N_OBS', float), ('N_OBS_HALF', float), ('N_MODEL', float), ('MC_SOURCE_ID', int)])
-    #np.save(outfile, arr)
-    f = open(outfile, 'ab')
-    np.savetxt(f, arr, delimiter=',')
-    f.close()
+    np.save(outfile, arr)
+    #f = open(outfile, 'ab')
+    #np.savetxt(f, arr, delimiter=',')
+    #f.close()
 
 def search_by_distance(survey, region, distance_modulus):
     """

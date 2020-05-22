@@ -179,7 +179,7 @@ class Region():
             nside_fracdet = hp.npix2nside(len(self.fracdet))
             
             subpix_region_array = []
-            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.catalog['basis_1']], data[survey.catalog['basis_2']])):
+            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[self.survey.catalog['basis_1']], data[self.survey.catalog['basis_2']])):
                 subpix_region_array.append(ugali.utils.healpix.subpixel(self.pix_center, self.nside, nside_fracdet))
             subpix_region_array = np.concatenate(subpix_region_array)
     
@@ -187,15 +187,6 @@ class Region():
             cut = (self.fracdet[subpix_region_array] != hp.UNSEEN)
             mean_fracdet = np.mean(self.fracdet[subpix_region_array[cut]])
     
-            # smau: this doesn't seem to be used in the non-local density estimation
-            subpix_region_array = subpix_region_array[fracdet[subpix_region_array] > 0.99]
-            subpix = ugali.utils.healpix.angToPix(nside_fracdet, 
-                                                  data[survey.catalog['basis_1']][cut_magnitude_threshold], 
-                                                  data[survey.catalog['basis_2']][cut_magnitude_threshold])
-            characteristic_density_fracdet = float(np.sum(np.in1d(subpix, subpix_region_array))) \
-                                             / (hp.nside2pixarea(nside_fracdet, degrees=True) * len(subpix_region_array)) # deg^-2
-            print('Characteristic density fracdet = {:0.1f} deg^-2').format(characteristic_density_fracdet)
-            
             # Correct the characteristic density by the mean fracdet value
             characteristic_density_raw = 1. * characteristic_density
             characteristic_density /= mean_fracdet 
@@ -226,7 +217,7 @@ class Region():
             nside_fracdet = hp.npix2nside(len(self.fracdet))
             
             subpix_region_array = []
-            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[survey.catalog['basis_1']], data[survey.catalog['basis_2']])):
+            for pix in np.unique(ugali.utils.healpix.angToPix(self.nside, data[self.survey.catalog['basis_1']], data[self.survey.catalog['basis_2']])):
                 subpix_region_array.append(ugali.utils.healpix.subpixel(self.pix_center, self.nside, nside_fracdet))
             subpix_region_array = np.concatenate(subpix_region_array)
     
@@ -236,8 +227,8 @@ class Region():
     
             subpix_region_array = subpix_region_array[self.fracdet[subpix_region_array] > 0.99]
             subpix = ugali.utils.healpix.angToPix(nside_fracdet, 
-                                                  data[survey.catalog['basis_1']][cut_magnitude_threshold], 
-                                                  data[survey.catalog['basis_2']][cut_magnitude_threshold])
+                                                  data[self.survey.catalog['basis_1']][cut_magnitude_threshold], 
+                                                  data[self.survey.catalog['basis_2']][cut_magnitude_threshold])
     
             # This is where the local computation begins
             ra_peak, dec_peak = self.proj.imageToSphere(x_peak, y_peak)

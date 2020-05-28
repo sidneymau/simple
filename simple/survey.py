@@ -12,6 +12,7 @@ import fitsio as fits
 import scipy.interpolate
 import scipy.ndimage
 import itertools
+from importlib import import_module
 
 import ugali.utils.healpix
 import ugali.utils.projector
@@ -103,7 +104,7 @@ class Survey():
         data = np.concatenate(data_array)
         if self.catalog['other'] is not None:
             for module in self.catalog['other'].split('&&'):
-                other = __import__(module.strip())
+                other = import_module(module.strip())
                 data = data[other.sel(self, data)]
         return(data)
 
@@ -159,20 +160,6 @@ class Region():
         cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.catalog['mag_max'])
     
         x, y = self.proj.sphereToImage(data[self.survey.catalog['basis_1']][cut_magnitude_threshold], data[self.survey.catalog['basis_2']][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
-        #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
-        delta_x = 0.01
-        area = delta_x**2
-        smoothing = 2. / 60. # Was 3 arcmin
-        bins = np.arange(-8., 8. + 1.e-10, delta_x)
-        centers = 0.5 * (bins[0: -1] + bins[1:])
-        yy, xx = np.meshgrid(centers, centers)
-    
-        h = np.histogram2d(x, y, bins=[bins, bins])[0]
-    
-        h_g = scipy.ndimage.filters.gaussian_filter(h, smoothing / delta_x)
-    
-        #cut_goodcoverage = (data['NEPOCHS_G'][cut_magnitude_threshold] >= 2) & (data['NEPOCHS_R'][cut_magnitude_threshold] >= 2)
-        # expect NEPOCHS to be good in DES data
     
         delta_x_coverage = 0.1
         area_coverage = (delta_x_coverage)**2
@@ -269,19 +256,20 @@ class Region():
                                                    / (hp.nside2pixarea(nside_fracdet, degrees=True) * len(subpix_annulus_region)) # deg^-2
                     print('characteristic_density_local cleaned up {}'.format(characteristic_density_local))
         else:
-            # Compute the local characteristic density
-            area_field = np.pi * (0.5**2 - 0.3**2)
-            n_field = np.sum((angsep_peak > 0.3) & (angsep_peak < 0.5))
-            characteristic_density_local = n_field / area_field
-    
+            inner, outer = 0.3, 0.5
+            
             # If not good azimuthal coverage, revert
-            cut_annulus = (angsep_peak > 0.3) & (angsep_peak < 0.5) 
+            cut_annulus = (angsep_peak > inner) & (angsep_peak < outer)
             #phi = np.degrees(np.arctan2(y_full[cut_annulus] - y_peak, x_full[cut_annulus] - x_peak)) # Use full magnitude range, NOT TESTED!!!
             phi = np.degrees(np.arctan2(y[cut_annulus] - y_peak, x[cut_annulus] - x_peak)) # Impose magnitude threshold
             h = np.histogram(phi, bins=np.linspace(-180., 180., 13))[0]
             if np.sum(h > 0) < 10 or np.sum(h > 0.5 * np.median(h)) < 10:
-                #angsep_peak = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
                 characteristic_density_local = characteristic_density
+            else:
+                # Compute the local characteristic density
+                area_field = np.pi * (0.5**2 - 0.3**2)
+                n_field = np.sum((angsep_peak > 0.3) & (angsep_peak < 0.5))
+                characteristic_density_local = n_field / area_field
     
         print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
     

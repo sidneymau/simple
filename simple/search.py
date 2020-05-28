@@ -18,6 +18,7 @@ import ugali.utils.healpix
 import ugali.utils.projector
 
 import simple.survey
+import simple.isochrone
 
 #------------------------------------------------------------------------------
 
@@ -113,12 +114,17 @@ def search_by_distance(survey, region, distance_modulus):
 
     print('Distance = {:0.1f} kpc (m-M = {:0.1f})').format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus)
 
-    iso = ugali.isochrone.factory(name=survey.isochrone['name'], survey=survey.isochrone['survey'], band_1=survey.band_1.lower(), band_2=survey.band_2.lower())
-    iso.age = survey.isochrone['age']
-    iso.metallicity = survey.isochrone['metallicity']
-    iso.distance_modulus = distance_modulus
-
-    cut = cut_isochrone_path(region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], iso, survey.catalog['mag_max'], radius=0.1)
+    if 'custom' in survey.isochrone['name'].lower():
+        iso = simple.isochrone.CustomIsochrone(distance_modulus, survey.isochrone['age'], survey.isochrone['metallicity'])
+        cut = iso.cut_separation('g', 'r', region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], radius=0.1)
+        if survey.band_3 is not None:
+            cut &= iso.cut_separation('r', 'i', region.data[survey.mag_2], region.data[survey.mag_3], region.data[survey.mag_err_2], region.data[survey.mag_err_3], radius=0.1)
+    else:
+        iso = ugali.isochrone.factory(name=survey.isochrone['name'], survey=survey.isochrone['survey'], band_1=survey.band_1.lower(), band_2=survey.band_2.lower())
+        iso.age = survey.isochrone['age']
+        iso.metallicity = survey.isochrone['metallicity']
+        iso.distance_modulus = distance_modulus
+        cut = cut_isochrone_path(region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], iso, survey.catalog['mag_max'], radius=0.1)
     data = region.data[cut]
 
     print('{} objects left after isochrone cut...').format(len(data))

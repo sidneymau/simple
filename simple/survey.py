@@ -37,6 +37,9 @@ class Survey():
             self.mag_3 = self.catalog['mag'].format(self.band_3.upper())
             self.mag_err_3 = self.catalog['mag_err'].format(self.band_3.upper())
             self.cols += [self.mag_3, self.mag_err_3]
+        else:
+            self.mag_3 = None
+            self.mag_err_3 = None
 
         if self.catalog['reddening']:
             self.reddening_1 = self.catalog['reddening'].format(self.band_1.upper())
@@ -46,6 +49,8 @@ class Survey():
             if self.band_3 is not None:
                 self.reddening_3 = self.catalog['reddening'].format(self.band_3.upper())
                 self.cols.append(self.reddening_3)
+            else:
+                self.reddening_3 = None
 
         self.load_fracdet
 
@@ -91,7 +96,9 @@ class Survey():
                     if self.catalog['reddening']:
                         d[self.mag_1] -= d[self.reddening_1]
                         d[self.mag_2] -= d[self.reddening_2]
-                        d = d[[name for name in d.dtype.names if name not in [self.reddening_1, self.reddening_2]]]
+                        if self.band_3 is not None:
+                            d[self.mag_3] -= d[self.reddening_3]
+                        d = d[[name for name in d.dtype.names if name not in [self.reddening_1, self.reddening_2, self.reddening_3]]]
                     data_array.append(d)
         data = np.concatenate(data_array)
         if self.catalog['other'] is not None:

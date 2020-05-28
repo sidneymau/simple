@@ -8,25 +8,24 @@ import os
 import yaml
 import argparse
 
-# Simple Libraries
-import simple.survey
-
 #----------------------------------------------------------
 
 config = {'survey': {'name'    : 'des',
                      'fracdet' : None},
           'band_1' : 'G',
           'band_2' : 'R',
-          'catalog' : {'dirname'   : '/data/des40.b/data/y6a1/gold/1.1/healpix',
+          'band_3' : 'I',
+          'catalog' : {'dirname'   : '/Users/mcnanna/Research/y6/far-out/datafiles/y6a1_skim',
                        'nside'     : 32,
                        'mag_max'   : 24.5,
                        'basis_1'   : 'RA',
                        'basis_2'   : 'DEC',
-                       'mag'       : 'SOF_PSF_MAG_{}',
+                       'mag'       : 'SOF_PSF_MAG_CORRECTED_{}',
                        'mag_err'   : 'SOF_PSF_MAG_ERR_{}',
-                       'reddening' : 'A_FIDUCIAL_{}',
-                       'quality'   : 'SOF_PSF_MAG_G < 24.5',
-                       'stars'     : 'WAVG_SPREAD_MODEL_G < 0.003 + SPREADERR_MODEL_G'},
+                       'reddening' : None,
+                       'quality'   : 'SOF_PSF_MAG_CORRECTED_R < 24.5 && SOF_PSF_MAG_CORRECTED_I < 24.25',
+                       'stars'     : 'EXT_SOF >= 0 && EXT_SOF <= 2',
+                       'other'     : 'colorcolor'},
           'isochrone': {'name'        : 'Bressan2012',
                         'survey'      : 'des',
                         'age'         : 12,

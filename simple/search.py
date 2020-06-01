@@ -3,22 +3,16 @@
 """
 __author__ = "Sidney Mau"
 
-import sys
 import os
-import glob
 import yaml
 import argparse
 import itertools
 import numpy as np
-import healpy as hp
-import fitsio as fits
 import scipy.interpolate
 
-import ugali.utils.healpix
 import ugali.utils.projector
 
 import simple.survey
-import simple.isochrone
 
 #------------------------------------------------------------------------------
 
@@ -114,16 +108,12 @@ def search_by_distance(survey, region, distance_modulus):
 
     print('Distance = {:0.1f} kpc (m-M = {:0.1f})').format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus)
 
+    iso = survey.get_isochrone(distance_modulus)
     if 'custom' in survey.isochrone['name'].lower():
-        iso = simple.isochrone.CustomIsochrone(distance_modulus, survey.isochrone['age'], survey.isochrone['metallicity'])
-        cut = iso.cut_separation('g', 'r', region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], radius=0.1)
+        cut = iso.cut_separation(survey.band_1.lower(), survey.band_2.lower(), region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], radius=0.1)
         if survey.band_3 is not None:
-            cut &= iso.cut_separation('r', 'i', region.data[survey.mag_2], region.data[survey.mag_3], region.data[survey.mag_err_2], region.data[survey.mag_err_3], radius=0.1)
+            cut &= iso.cut_separation(survey.band_2.lower(), survey.band_3.lower(), region.data[survey.mag_2], region.data[survey.mag_3], region.data[survey.mag_err_2], region.data[survey.mag_err_3], radius=0.1)
     else:
-        iso = ugali.isochrone.factory(name=survey.isochrone['name'], survey=survey.isochrone['survey'], band_1=survey.band_1.lower(), band_2=survey.band_2.lower())
-        iso.age = survey.isochrone['age']
-        iso.metallicity = survey.isochrone['metallicity']
-        iso.distance_modulus = distance_modulus
         cut = cut_isochrone_path(region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], iso, survey.catalog['mag_max'], radius=0.1)
     data = region.data[cut]
 
@@ -131,6 +121,8 @@ def search_by_distance(survey, region, distance_modulus):
 
     if (len(data) == 0):
         return [], [], [], [], [], [], [], []
+
+    region.set_characteristic_density(data)
 
     ra_peak_array = []
     dec_peak_array = []
@@ -144,7 +136,6 @@ def search_by_distance(survey, region, distance_modulus):
     x_peak_array, y_peak_array, angsep_peak_array = region.find_peaks(data, distance_modulus)
 
     for x_peak, y_peak, angsep_peak in itertools.izip(x_peak_array, y_peak_array, angsep_peak_array):
-        characteristic_density_local = region.characteristic_density_local(data, x_peak, y_peak, angsep_peak)
         # Aperture fitting
         print('Fitting aperture to hotspot...')
         ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = region.fit_aperture(data, distance_modulus, x_peak, y_peak, angsep_peak)

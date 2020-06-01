@@ -5,18 +5,17 @@ __author__ = "Sidney Mau"
 
 import glob
 import os
+from importlib import import_module
 
 import numpy as np
 import healpy as hp
 import fitsio as fits
-import scipy.interpolate
 import scipy.ndimage
-import itertools
-from importlib import import_module
 
 import ugali.utils.healpix
 import ugali.utils.projector
-import ugali.isochrone
+
+import simple.isochrone
 
 #------------------------------------------------------------------------------
 
@@ -77,14 +76,19 @@ class Survey():
         pix_neighbors = np.concatenate([[pix_select], hp.get_all_neighbours(self.catalog['nside'], pix_select)])
         return(pix_neighbors)
 
-    def get_data(self, pixels):
+    def get_data(self, pixels, type='stars'):
         """
         Load-in and return data for a list of healpixels as a numpy array.
         """
-        if self.catalog['quality']:
-            sel = '{} && {}'.format(self.catalog['stars'], self.catalog['quality'])
-        else:
+        if type == 'stars':
             sel = self.catalog['stars']
+        elif type == 'galaxies':
+            sel = self.catalog['galaxies']
+        elif type == 'all':
+            sel = ''
+        if self.catalog['quality']:
+            sel = '{} && {}'.format(sel, self.catalog['quality'])
+
         data_array = []
         for pixel in pixels:
             inlist = glob.glob('{}/*_{:05d}.fits'.format(self.catalog['dirname'], pixel))
@@ -108,19 +112,17 @@ class Survey():
                 data = data[other.sel(self, data)]
         return(data)
 
-    #def get_stars(self, data):
-    #    """
-    #    Return boolean list of star-like objects.
-    #    """
-    #    sel = (data['WAVG_SPREAD_MODEL_G'] < 0.003 + data['SPREADERR_MODEL_G'])
-    #    return(sel)
 
-    #def get_galaxies(self, data):
-    #    """
-    #    Return boolean list of galaxy-like objects.
-    #    """
-    #    sel = (data['WAVG_SPREAD_MODEL_G'] > 0.003 + data['SPREADERR_MODEL_G'])
-    #    return(sel)
+    def get_isochrone(self, distance_modulus=None):
+        if 'custom' in self.isochrone['name'].lower():
+            iso = simple.isochrone.CustomIsochrone()
+        else:
+            iso = ugali.isochrone.factory(name=self.isochrone['name'], survey=self.isochrone['survey'], band_1=self.band_1.lower(), band_2=self.band_2.lower())
+        iso.age = self.isochrone['age']
+        iso.metallicity = self.isochrone['metallicity']
+        if distance_modulus is not None:
+            iso.distance_modulus = distance_modulus
+        return(iso)
 
 #------------------------------------------------------------------------------
 
@@ -138,12 +140,13 @@ class Region():
         self.proj = ugali.utils.projector.Projector(self.ra, self.dec)
         self.pix_center = ugali.utils.healpix.angToPix(self.nside, self.ra, self.dec)
         self.pix_neighbors = np.concatenate([[self.pix_center], hp.get_all_neighbours(self.nside, self.pix_center)])
+        self.characteristic_density = None
 
-    def get_data(self):
-        return(self.survey.get_data(self.pix_neighbors))
+    def get_data(self, type='stars'):
+        return(self.survey.get_data(self.pix_neighbors, type))
 
-    def load_data(self):
-        self.data = self.get_data()
+    def load_data(self, type='stars'):
+        self.data = self.get_data(type)
 
     #def get_stars(self, data):
     #    return(self.survey.get_stars(data))
@@ -151,7 +154,7 @@ class Region():
     #def get_galaxies(self, data):
     #    return(self.survey.get_galaxies(data))
 
-    def characteristic_density(self, data):
+    def compute_characteristic_density(self, data):
         """
         Compute the characteristic density of a region
         Convlve the field and find overdensity peaks
@@ -192,11 +195,14 @@ class Region():
             mean_fracdet = np.mean(self.fracdet[subpix_region_array[cut]])
     
             # Correct the characteristic density by the mean fracdet value
-            characteristic_density_raw = 1. * characteristic_density
             characteristic_density /= mean_fracdet 
             print('Characteristic density (fracdet corrected) = {:0.1f} deg^-2').format(characteristic_density)
     
         return(characteristic_density)
+
+    def set_characteristic_density(self, data):
+        d = self.compute_characteristic_density(data)
+        self.characteristic_density = d
     
     def characteristic_density_local(self, data, x_peak, y_peak, angsep_peak):
         """
@@ -205,10 +211,14 @@ class Region():
     
         cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.catalog['mag_max'])
 
-        characteristic_density = self.characteristic_density(data)
+        if self.characteristic_density is None:
+            characteristic_density = self.compute_characteristic_density(data)
+        else:
+            characteristic_density = self.characteristic_density
     
         x, y = self.proj.sphereToImage(data[self.survey.catalog['basis_1']][cut_magnitude_threshold], data[self.survey.catalog['basis_2']][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
+        inner, outer = 0.3, 0.5 
     
         # If fracdet map is available, use that information to either compute local density,
         # or in regions of spotty coverage, use the typical density of the region
@@ -236,29 +246,27 @@ class Region():
     
             # This is where the local computation begins
             ra_peak, dec_peak = self.proj.imageToSphere(x_peak, y_peak)
-            subpix_all = ugali.utils.healpix.angToDisc(nside_fracdet, ra_peak, dec_peak, 0.5)
-            subpix_inner = ugali.utils.healpix.angToDisc(nside_fracdet, ra_peak, dec_peak, 0.3)
+            subpix_all = ugali.utils.healpix.angToDisc(nside_fracdet, ra_peak, dec_peak, outer)
+            subpix_inner = ugali.utils.healpix.angToDisc(nside_fracdet, ra_peak, dec_peak, inner)
             subpix_annulus = subpix_all[~np.in1d(subpix_all, subpix_inner)]
             mean_fracdet = np.mean(fracdet_zero[subpix_annulus])
             print('mean_fracdet {}'.format(mean_fracdet))
             if mean_fracdet < 0.5:
                 characteristic_density_local = characteristic_density
-                print('characteristic_density_local baseline {}').format(characteristic_density_local)
+                print('Characteristic density local (baseline) = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
             else:
                 # Check pixels in annulus with complete coverage
                 subpix_annulus_region = np.intersect1d(subpix_region_array, subpix_annulus)
                 print('{} percent pixels with complete coverage'.format(float(len(subpix_annulus_region)) / len(subpix_annulus)))
                 if (float(len(subpix_annulus_region)) / len(subpix_annulus)) < 0.25:
                     characteristic_density_local = characteristic_density
-                    print('characteristic_density_local spotty {}'.format(characteristic_density_local))
+                    print('Characteristic density local (spotty)  = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
                 else:
                     characteristic_density_local = float(np.sum(np.in1d(subpix, subpix_annulus_region))) \
                                                    / (hp.nside2pixarea(nside_fracdet, degrees=True) * len(subpix_annulus_region)) # deg^-2
-                    print('characteristic_density_local cleaned up {}'.format(characteristic_density_local))
+                    print('Characteristic density local (cleaned up) = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
         else:
-            inner, outer = 0.3, 0.5
-            
-            # If not good azimuthal coverage, revert
+            # If not good azimuthal coverage, revert to broad region density
             cut_annulus = (angsep_peak > inner) & (angsep_peak < outer)
             #phi = np.degrees(np.arctan2(y_full[cut_annulus] - y_peak, x_full[cut_annulus] - x_peak)) # Use full magnitude range, NOT TESTED!!!
             phi = np.degrees(np.arctan2(y[cut_annulus] - y_peak, x[cut_annulus] - x_peak)) # Impose magnitude threshold
@@ -267,11 +275,10 @@ class Region():
                 characteristic_density_local = characteristic_density
             else:
                 # Compute the local characteristic density
-                area_field = np.pi * (0.5**2 - 0.3**2)
-                n_field = np.sum((angsep_peak > 0.3) & (angsep_peak < 0.5))
+                area_field = np.pi * (outer**2 - inner**2)
+                n_field = np.sum((angsep_peak > inner) & (angsep_peak < outer))
                 characteristic_density_local = n_field / area_field
-    
-        print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
+            print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
     
         return(characteristic_density_local)
 
@@ -283,7 +290,10 @@ class Region():
         # convolve field and find peaks
         cut_magnitude_threshold = (data[self.survey.mag_1] < self.survey.catalog['mag_max'])
 
-        characteristic_density = self.characteristic_density(data)
+        if self.characteristic_density is None:
+            characteristic_density = self.compute_characteristic_density(data)
+        else:
+            characteristic_density = self.characteristic_density
     
         x, y = self.proj.sphereToImage(data[self.survey.catalog['basis_1']][cut_magnitude_threshold], data[self.survey.catalog['basis_2']][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation

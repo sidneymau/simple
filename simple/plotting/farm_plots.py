@@ -5,56 +5,44 @@ Create simple binner style plots for ugali or simple candidate lists
 __author__ = "Sidney Mau"
 
 import os
-import sys
-import time
 import subprocess
-import glob
-import healpy
-import numpy
 import numpy as np
-
-import ugali.utils.healpix
-import fitsio as fits
-
+import argparse
 import yaml
+
+import simple.survey
+import simple.plotting.diagnostic_plots
 
 ############################################################
 
-with open('config.yaml', 'r') as ymlfile:
+parser = argparse.ArgumentParser()
+parser.add_argument('--config', type=str, required=True, help='config file')
+parser.add_argument('--infile', type=str, required=True, help='candidate list to plot')
+parser.add_argument('--outdir', type=str, required=False, help='directory for plots', default='plot_dir')
+parser.add_argument('--sig_cut',type=str, required=False, help='significance cut', default=5.5)
+parser.add_argument('--jobs'   ,type=int, required=False, help='number of simultaneous jobs', default=20)
+args = vars(parser.parse_args())
+
+with open(args['config'], 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
+    survey = simple.survey.Survey(cfg)
 
-    survey = cfg['survey']
-    simple_dir = cfg['setup']['simple_dir']
-    jobs = cfg['batch']['jobs']
-    candidate_list = cfg[survey]['candidate_list']
-    basis_1 = cfg[survey]['basis_1']
-    basis_2 = cfg[survey]['basis_2']
-
-save_dir = os.path.join(os.getcwd(), cfg['output']['save_dir'])
+save_dir = os.path.join(os.getcwd(), args['outdir'])
 if not os.path.exists(save_dir):
     os.mkdir(save_dir)
 
-log_dir = os.path.join(os.getcwd(), cfg['output']['save_dir'], cfg['output']['log_dir'])
+log_dir = os.path.join(save_dir, 'log_dir')
 if not os.path.exists(log_dir):
     os.mkdir(log_dir)
 
-try:
-    sig_cut = float(sys.argv[1])
-except:
-    sig_cut = 5.5
 
-print('Plotting hotspots with sig > {}'.format(sig_cut))
+print('Plotting hotspots with sig > {}'.format(args['sig_cut']))
 
-candidate_list = fits.read(candidate_list)
-#candidate_list = np.load(candidate_list)
+candidate_list = np.load(args['infile'])
 try: # simple
-    candidate_list = candidate_list[candidate_list['SIG'] > sig_cut]
+    candidate_list = candidate_list[candidate_list['SIG'] > args['sig_cut']]
 except: # ugali
     candidate_list = candidate_list[candidate_list['TS'] > 25]
-
-#candidate_list = candidate_list[np.isin(candidate_list['MC_SOURCE_ID'],[23,55,63, 64, 75, 95, 111, 112, 117, 120, 133, 156, 193, 202, 223, 224, 227, 241, 243, 268, 269, 278, 284, 307, 314, 324, 355, 364, 382, 398, 422, 432, 483, 485, 490, 514, 532, 536,  540,  544,  550,  551,  574,  578,  583,  587,  588,  596, 603,  609,  617,  624,  630,  639,  643,  649,  653,  657,  683,  686, 696,  697,  704,  718,  728,  735,  742,  746,  751,  770,  776,  837, 838,  845,  854,  860,  897,  906,  909,  924,  951,  955,  957,  970, 975,  977,  985,  988])]
-# for PS1
-#candidate_list = candidate_list[candidate_list['DEC'] > -15]
 
 print('{} candidates found...').format(len(candidate_list))
 
@@ -62,28 +50,28 @@ print('{} candidates found...').format(len(candidate_list))
 
 #for candidate in [candidate_list[:10]]:
 for candidate in candidate_list:
-    try: # simple
-        sig = round(candidate['SIG'], 2)
-    except: # ugali
-        sig = round(candidate['TS'], 2)
-    ra      = round(candidate[basis_1], 2)
-    dec     = round(candidate[basis_2], 2)
-    mod     = round(candidate['MODULUS'], 2)
-    mc_source_id = round(candidate['MC_SOURCE_ID'], 2)
-    if 'N_MODEL' in candidate_list.dtype.names:
-        field_density = round(candidate['N_MODEL'] / (np.pi * (candidate['R'] * 60.)**2), 4) # field density (arcmin^-2)
+    keys = ['sig', 'ra', 'dec', 'mod', 'r', 'n_obs', 'n_model']
+    params = dict.fromkeys(keys)
+    if candidate is not None:
+        try: # simple
+            params['sig'] = round(candidate['SIG'], 2)
+        except: # ugali
+            params['sig'] = round(candidate['TS'], 2)
+        params['ra']      = round(candidate[survey.catalog['basis_1']], 2)
+        params['dec']     = round(candidate[survey.catalog['basis_2']], 2)
+        params['mod']     = round(candidate['MODULUS'], 2)
+        params['r']       = round(candidate['R'], 3)
+        params['n_obs']   = candidate['N_OBS']
+        params['n_model'] = candidate['N_MODEL']
+    sig, ra, dec, mod, r, n_obs, n_model = [params[key] for key in keys]
     
     logfile = '{}/candidate_{}_{}.log'.format(log_dir, ra, dec)
     #batch = 'csub -n {} -o {} '.format(jobs, logfile)
-    batch = 'csub -n {} -o {} --host all '.format(jobs, logfile) # testing condor updates
-    if 'N_MODEL' in candidate_list.dtype.names:
-        command = 'python {}/plotting/make_plot.py {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.4f}'.format(simple_dir, ra, dec, mod, sig, mc_source_id, field_density)
-    else:
-        command = 'python {}/plotting/make_plot.py {:0.2f} {:0.2f} {:0.2f} {:0.2f} {:0.2f}'.format(simple_dir, ra, dec, mod, sig, mc_source_id)
+    batch = 'csub -n {} -o {} --host all '.format(args['jobs'], logfile) # testing condor updates
+    abspath = os.path.abspath(simple.plotting.diagnostic_plots.__file__)
+    command = 'python {} --config {} --outdir {} --sig {:0.2f} --ra {:0.2f} --dec {:0.2f} --r {:0.3f} --modulus {:0.2f} --n_obs {:0.2f} --n_model {:0.2f}'.format(
+            abspath, args['config'], args['outdir'], sig, ra, dec, r, mod, n_obs, n_model)
     command_queue = batch + command
 
-    #print(command)
-    #os.system(command)
     print(command_queue)
-    #os.system(command_queue) # Submit to queue
     subprocess.call(command_queue.split(' '), shell=False)

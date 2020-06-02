@@ -18,7 +18,6 @@ import simple.plotting.diagnostic_plots
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, required=True, help='config file')
 parser.add_argument('--infile', type=str, required=True, help='candidate list to plot')
-parser.add_argument('--outdir', type=str, required=False, help='directory for plots', default='plot_dir')
 parser.add_argument('--sig_cut',type=str, required=False, help='significance cut', default=5.5)
 parser.add_argument('--jobs'   ,type=int, required=False, help='number of simultaneous jobs', default=20)
 args = vars(parser.parse_args())
@@ -27,11 +26,7 @@ with open(args['config'], 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
     survey = simple.survey.Survey(cfg)
 
-save_dir = os.path.join(os.getcwd(), args['outdir'])
-if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
-
-log_dir = os.path.join(save_dir, 'log_dir')
+log_dir = os.path.join(survey.output['plot_dir'], 'log_dir')
 if not os.path.exists(log_dir):
     os.mkdir(log_dir)
 
@@ -69,8 +64,8 @@ for candidate in candidate_list:
     #batch = 'csub -n {} -o {} '.format(jobs, logfile)
     batch = 'csub -n {} -o {} --host all '.format(args['jobs'], logfile) # testing condor updates
     abspath = os.path.abspath(simple.plotting.diagnostic_plots.__file__)
-    command = 'python {} --config {} --outdir {} --sig {:0.2f} --ra {:0.2f} --dec {:0.2f} --r {:0.3f} --modulus {:0.2f} --n_obs {:0.2f} --n_model {:0.2f}'.format(
-            abspath, args['config'], args['outdir'], sig, ra, dec, r, mod, n_obs, n_model)
+    command = 'python {} --config {} --sig {:0.2f} --ra {:0.2f} --dec {:0.2f} --r {:0.3f} --modulus {:0.2f} --n_obs {:0.2f} --n_model {:0.2f}'.format(
+            abspath, args['config'], sig, ra, dec, r, mod, n_obs, n_model)
     command_queue = batch + command
 
     print(command_queue)

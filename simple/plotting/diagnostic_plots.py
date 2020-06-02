@@ -317,7 +317,7 @@ def radial_plot(ax, region, iso, g_radius, field_density=None):
     ax.set_ylabel('Denisty (arcmin$^{-2})$')
 
 
-def make_plot(survey, plot_dir, candidate=None, **kwargs):
+def make_plot(survey, candidate=None, **kwargs):
     """ Creates and saves a 9-panel plot for a single candidate.
     If a candidate is passed, its parameters (coordinates, modulus, etc.)
     will be used. kwargs can be used to supercede these parameters if desired.
@@ -398,16 +398,13 @@ def make_plot(survey, plot_dir, candidate=None, **kwargs):
     plt.suptitle(association_string+'\n' + info_string+'\n' + detect_string, fontsize=24)
 
     file_name = 'candidate_{:0.2f}_{:0.2f}_{:0.2f}'.format(sig, ra, dec)
-    if not os.path.exists(plot_dir):
-        os.makdir(plot_dir)
-    plt.savefig(plot_dir+'/'+file_name+'.png',  bbox_inches='tight')
+    plt.savefig(survey.output['plot_dir']+'/'+file_name+'.png',  bbox_inches='tight')
     plt.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, required=True, help='config file')
-    parser.add_argument('--outdir', type=str, required=False, help='Directory for plots', default='plot_dir')
     parser.add_argument('--sig_cut', type=float, required=False, help='Significance threshold to plot', default=5.5)
     parser.add_argument('--infile', type=str, required=False, help='Candidate list to plot. No further arguments necessary if passed')
     parser.add_argument('--sig', type=float, required=False, help='Candidate significance')
@@ -431,8 +428,8 @@ if __name__ == '__main__':
             candidate_list = candidate_list[candidate_list['TS'] > args['sig_cut']]
 
         for candidate in candidate_list:
-            make_plot(survey, args['outdir'], candidate)
+            make_plot(survey, candidate)
 
     else:
-        make_plot(survey, args['outdir'], sig=args['sig'], ra=args['ra'], dec=args['dec'], r=args['r'], mod=args['modulus'], n_obs=args['n_obs'], n_model=args['n_model'])
+        make_plot(survey, sig=args['sig'], ra=args['ra'], dec=args['dec'], r=args['r'], mod=args['modulus'], n_obs=args['n_obs'], n_model=args['n_model'])
          

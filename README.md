@@ -24,8 +24,20 @@ matplotlib,
 
 ## Configuration and use
 
+`simple` expects the catalog data to be in a specific format: each data file should correspond to a single healpix pixel with `nest=False`. 
+
+You will want to create a directory such as `simple_run/` in which to perform the search. 
+
+Running `init_simple.py` in this directory will produce output directories as well as a `config.yaml` file.
+This `config.yaml` file specifies the configuration for the search and should be edited for your use case. The details of this config file are given their own section below.
+
+Running `search.py --config config.yaml --ra RA --dec DEC --outfile out.npy` will perform the search in the healpix pixel containing the specified RA and DEC, writing the results to a `.npy` file. To run a parallel search over the entire dataset using the HTCondor batch system, use `parallel_search --config config.yaml`. 
+
+
+
+
+
 `config.yaml` handles most of the setup and can be modified according to use.
-You will need to modify the value for the `simple_dir` key to be the path to your `simple` folder that contains these source files.
 
 You will need to create a directory such as `simple_run/`.
 Copy `config.yaml` into `simple_run/`; this will let the the scripts know where to source the config info from as well as where to write the output.

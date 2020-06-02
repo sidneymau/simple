@@ -31,9 +31,11 @@ You will want to create a directory such as `simple_run/` in which to perform th
 Running `init_simple.py` in this directory will produce output directories as well as a `config.yaml` file.
 This `config.yaml` file specifies the configuration for the search and should be edited for your use case. The details of this config file are given their own section below.
 
-Running `search.py --config config.yaml --ra RA --dec DEC --outfile out.npy` will perform the search in the healpix pixel containing the specified RA and DEC, writing the results to a `.npy` file. To run a parallel search over the entire dataset using the HTCondor batch system, use `parallel_search --config config.yaml`. 
+Running `search.py --config config.yaml --ra RA --dec DEC --outfile results.npy` will perform the search in the healpix pixel containing the specified RA and DEC, writing the results to `results.npy` file. 
+To run a parallel search over the entire dataset using the HTCondor batch system, use `parallel_search --config config.yaml`. Output will be written to the `results_dir` specified in the config file. 
 
-
+Diagnostic plots of a list of candidates can be made using `plotting/diagnostic_plots.py --config config.yaml --infile results.npy`. Unless the optional '--sig_cut' argument is passed, only candidates with `SIG` > 5.5 will be plotted. 
+`plotting/farm_plots.py --config config.yamls --infile results.npy` can be used to parallelize the plotting using HTCondor. Plots will be written to the `plot_dir` specified in the config file.  
 
 
 

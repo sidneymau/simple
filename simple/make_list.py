@@ -18,8 +18,8 @@ import fitsio
 if __name__ == '__main__':
     # Construct argument parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config',type=str,required=False,default='defaults.yaml',
-                        help='config file')
+    parser.add_argument('--config',type=str,required=True,help='config file')
+    parser.add_argument('--outname',type=str,required=False,help='Output .fits file name',default='candidate_list.fits')
     args = vars(parser.parse_args())
 
     with open(args['config'], 'r') as ymlfile:
@@ -27,44 +27,19 @@ if __name__ == '__main__':
 
     #--------------------------------------------------------------------------
 
-    # Parse results from results_dir into a list of values
+    # Concatenate results from results_dir into one array
     results = []
-    for file in glob.glob('{}/*.txt'.format(cfg['output']['results_dir'])):
-        with open(file, 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            for row in reader:
-                results.append([float(val) for val in row])
-        csvfile.close()
-    
+    for file in glob.glob('{}/*.npy'.format(cfg['output']['results_dir'])):
+        result = np.load(file)
+        for row in result:
+            results.append(row)
     data = np.asarray(results)
-    #data = data[np.unique([data[i][-1] for i in range(len(data))], return_index=True)[1]]
-    
-    # Create fits columns
-    c0 = fits.Column(name='SIG',          format='E', array=data[:,0])
-    c1 = fits.Column(name=cfg['basis_1'], format='E', array=data[:,1])
-    c2 = fits.Column(name=cfg['basis_2'], format='E', array=data[:,2])
-    c3 = fits.Column(name='MODULUS',      format='E', array=data[:,3])
-    c4 = fits.Column(name='R',            format='E', array=data[:,4])
-    c5 = fits.Column(name='N_OBS',        format='E', array=data[:,5])
-    c6 = fits.Column(name='N_OBS_HALF',   format='E', array=data[:,6])
-    c7 = fits.Column(name='N_MODEL',      format='E', array=data[:,7])
-    c8 = fits.Column(name='MC_SOURCE_ID', format='E', array=data[:,8])
-    
+
     # Write fits output
-    candidate_list = 'candidate_list.fits'
-    t = fits.BinTableHDU.from_columns([c0, c1, c2, c3, c4, c5, c6, c7, c8])
-    t.writeto(candidate_list, overwrite=True)
-    
-    #from fitsio import FITS
-    #
-    #fits = FITS(candidate_list, 'rw')
-    ##names = ['SIG', basis_1, basis_2, 'MODULUS', 'r']
-    ##fits.write(data, names=names)
-    #fits.write(data)
-    #fits.close()
+    fits.writeto(args['outname'], data, overwrite=True)
     
     # Diagnostic output
-    data = fitsio.read(candidate_list)
+    data = fitsio.read(args['outname'])
     print("{} hotspots found.").format(len(data))
     cut_0 = (data['SIG'] > 5.5)
     print("{} hotspots found with SIG > 5.5.").format(len(data[cut_0]))

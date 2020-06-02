@@ -32,27 +32,13 @@ Running `init_simple.py` in this directory will produce output directories as we
 This `config.yaml` file specifies the configuration for the search and should be edited for your use case. The details of this config file are given their own section below.
 
 Running `search.py --config config.yaml --ra RA --dec DEC --outfile results.npy` will perform the search in the healpix pixel containing the specified RA and DEC, writing the results to `results.npy` file. 
-To run a parallel search over the entire dataset using the HTCondor batch system, use `parallel_search --config config.yaml`. Output will be written to the `results_dir` specified in the config file. 
+To run a parallel search over the entire dataset using the HTCondor batch system, use `parallel_search.py --config config.yaml`. Output will be written to the `results_dir` specified in the config file. 
+The results can then be compiled into a single candidate list FITS file by running `make_list.py`
 
-Diagnostic plots of a list of candidates can be made using `plotting/diagnostic_plots.py --config config.yaml --infile results.npy`. Unless the optional '--sig_cut' argument is passed, only candidates with `SIG` > 5.5 will be plotted. 
+Diagnostic plots of a list of candidates can be made using `plotting/diagnostic_plots.py --config config.yaml --infile results.npy`. Unless the optional `--sig_cut` argument is passed, only candidates with `SIG` > 5.5 will be plotted. 
 `plotting/farm_plots.py --config config.yamls --infile results.npy` can be used to parallelize the plotting using HTCondor. Plots will be written to the `plot_dir` specified in the config file.  
 
 
-
-`config.yaml` handles most of the setup and can be modified according to use.
-
-You will need to create a directory such as `simple_run/`.
-Copy `config.yaml` into `simple_run/`; this will let the the scripts know where to source the config info from as well as where to write the output.
-If you have fracdet or maglim files, those should also be copied or linked here; specify their filepaths in `config.yaml`.
-
-To run the simple binning search, run `farm_simple.py` in `simple_run/`.
-This will run `search_algorithm.py` over the given data set and write the output to `results_dir/`, logging each job in `results_dir/log_dir`.
-The results can then be compiled into a candidate list by running `make_list.py` from `simple_run/` (this is saved as a `.npy` file).
-
-To produce plots from a candidate list, run `farm_plots.py` in `simple_run/`.
-The output will be written to `save_dir/` with logs in `save_dir/log_dir/`.
-
 ## Notes
 
-By default, `farm_plots.py` will only produce plots for hotspots with statistical significance greater than 5.5 sigma.
-This threshold has intentionally chosen to be low (such that investigations can be made of very low-significance hotsposts and candidates) but also to minimize junk.
+By default, the plotting scripts will only produce plots for hotspots with statistical significance greater than 5.5 sigma. This threshold has intentionally chosen to be low (such that investigations can be made of very low-significance hotsposts and candidates) but also to minimize junk. This can be changed by specifying the optional `--sig_cut` argument to the plotting scripts.

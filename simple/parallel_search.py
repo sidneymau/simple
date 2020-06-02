@@ -17,7 +17,7 @@ import simple.search
 #------------------------------------------------------------------------------
 
 def submit_job(cfgfile, cfg, ra, dec, pix):
-    outfile = '{}/results_nside_{}_{}.txt'.format(cfg['output']['results_dir'], cfg['catalog']['nside'], pix)
+    outfile = '{}/results_nside_{}_{}.npy'.format(cfg['output']['results_dir'], cfg['catalog']['nside'], pix)
     logfile = '{}/results_nside_{}_{}.log'.format(cfg['output']['log_dir'], cfg['catalog']['nside'], pix)
     batch = 'csub -n {} -o {} '.format(cfg['batch']['max_jobs'], logfile)
     command = 'python {}/search.py --config {} --ra {:0.2f} --dec {:0.2f} --outfile {}'.format(os.path.dirname(simple.search.__file__), cfgfile, ra, dec, outfile)

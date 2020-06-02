@@ -4,7 +4,7 @@ The simple binning suite includes modules for peforming a simple binning search 
 
 This code has been adapted from [Keith Bechtol](https://github.com/bechtol)'s original simple binning program to be more modular and ready-to-use for future searches.
 
-Maintained by [Sidney Mau](https://github.com/SidneyMau).
+Maintained by [Sidney Mau](https://github.com/SidneyMau) and [Mitch McNanna](https://github.com/mcnanna). 
 
 ## Dependencies
 
@@ -15,13 +15,12 @@ numpy,
 scipy,
 healpy,
 astropy,
-matplotlib,
-[fitsio](https://github.com/esheldon/fitsio)
+matplotlib, 
+[fitsio](https://github.com/esheldon/fitsio),
+[pyyaml](https://pyyaml.org/)
 
 [ugali](https://github.com/DarkEnergySurvey/ugali),
-[batchtools](https://github.com/kadrlica/batchtools) (for farming)
-
-and some others that I've forgotten to write down.
+[batchtools](https://github.com/kadrlica/batchtools) (for farming).
 
 ## Configuration and use
 

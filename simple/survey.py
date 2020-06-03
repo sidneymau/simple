@@ -14,6 +14,7 @@ import scipy.ndimage
 
 import ugali.utils.healpix
 import ugali.utils.projector
+import ugali.isochrone
 
 import simple.isochrone
 
@@ -112,12 +113,9 @@ class Survey():
                 data = data[other.sel(self, data)]
         return(data)
 
-
     def get_isochrone(self, distance_modulus=None):
-        if 'custom' in self.isochrone['name'].lower():
-            iso = simple.isochrone.CustomIsochrone()
-        else:
-            iso = ugali.isochrone.factory(name=self.isochrone['name'], survey=self.isochrone['survey'], band_1=self.band_1.lower(), band_2=self.band_2.lower())
+        iso_type = type(ugali.isochrone.factory(name=self.isochrone['name']))
+        iso = simple.isochrone.get_isochrone(iso_type, survey=self.isochrone['survey'])
         iso.age = self.isochrone['age']
         iso.metallicity = self.isochrone['metallicity']
         if distance_modulus is not None:

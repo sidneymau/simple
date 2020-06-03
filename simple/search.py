@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#i!/usr/bin/env python
 """
 """
 __author__ = "Sidney Mau"
@@ -15,64 +15,6 @@ import ugali.utils.projector
 import simple.survey
 
 #------------------------------------------------------------------------------
-
-def cut_isochrone_path(g, r, g_err, r_err, isochrone, mag_max, radius=0.1, return_all=False):
-    """
-    Cut to identify objects within isochrone cookie-cutter.
-    """
-    if np.all(isochrone.stage == 'Main'):
-        # Dotter case
-        index_transition = len(isochrone.stage)
-    else:
-        # Other cases
-        index_transition = np.nonzero(isochrone.stage >= isochrone.hb_stage)[0][0] + 1    
-
-    mag_1_rgb = isochrone.mag_1[0: index_transition] + isochrone.distance_modulus
-    mag_2_rgb = isochrone.mag_2[0: index_transition] + isochrone.distance_modulus
-    
-    mag_1_rgb = mag_1_rgb[::-1]
-    mag_2_rgb = mag_2_rgb[::-1]
-
-    # Cut one way...
-    f_isochrone = scipy.interpolate.interp1d(mag_2_rgb, mag_1_rgb - mag_2_rgb, bounds_error=False, fill_value = 999.)
-    color_diff = np.fabs((g - r) - f_isochrone(r))
-    cut_2 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
-
-     # ...and now the other
-    f_isochrone = scipy.interpolate.interp1d(mag_1_rgb, mag_1_rgb - mag_2_rgb, bounds_error=False, fill_value = 999.)
-    color_diff = np.fabs((g - r) - f_isochrone(g))
-    cut_1 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
-
-    cut = np.logical_or(cut_1, cut_2)
-
-    ## Cut for horizontal branch
-    #mag_1_hb = isochrone.mag_1[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
-    #mag_2_hb = isochrone.mag_2[isochrone.stage == isochrone.hb_stage][1:] + isochrone.distance_modulus
-
-    #f_isochrone = scipy.interpolate.interp1d(mag_2_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
-    #color_diff = np.fabs((g - r) - f_isochrone(r))
-    #cut_4 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
-
-    #f_isochrone = scipy.interpolate.interp1d(mag_1_hb, mag_1_hb - mag_2_hb, bounds_error=False, fill_value = 999.)
-    #color_diff = np.fabs((g - r) - f_isochrone(g))
-    #cut_3 = (color_diff < np.sqrt(0.1**2 + r_err**2 + g_err**2))
-    #
-    #cut_hb = np.logical_or(cut_3, cut_4)
-
-    #cut = np.logical_or(cut, cut_hb)
-
-    #mag_bins = np.arange(17., 24.1, 0.1)
-    mag_bins = np.arange(17., mag_max+0.1, 0.1)
-    mag_centers = 0.5 * (mag_bins[1:] + mag_bins[0:-1])
-    magerr = np.tile(0., len(mag_centers))
-    for ii in range(0, len(mag_bins) - 1):
-        cut_mag_bin = (g > mag_bins[ii]) & (g < mag_bins[ii + 1])
-        magerr[ii] = np.median(np.sqrt(0.1**2 + r_err[cut_mag_bin]**2 + g_err[cut_mag_bin]**2))
-
-    if return_all:
-        return cut, mag_centers[f_isochrone(mag_centers) < 100], (f_isochrone(mag_centers) + magerr)[f_isochrone(mag_centers) < 100], (f_isochrone(mag_centers) - magerr)[f_isochrone(mag_centers) < 100]
-    else:
-        return cut
 
 def write_output(results_dir, nside, pix_nside_select, ra_peak_array, dec_peak_array, r_peak_array, distance_modulus_array, 
                 n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, 
@@ -110,12 +52,9 @@ def search_by_distance(survey, region, distance_modulus):
     print('Distance = {:0.1f} kpc (m-M = {:0.1f})').format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus)
 
     iso = survey.get_isochrone(distance_modulus)
-    if 'custom' in survey.isochrone['name'].lower():
-        cut = iso.cut_separation(survey.band_1.lower(), survey.band_2.lower(), region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], radius=0.1)
-        if survey.band_3 is not None:
-            cut &= iso.cut_separation(survey.band_2.lower(), survey.band_3.lower(), region.data[survey.mag_2], region.data[survey.mag_3], region.data[survey.mag_err_2], region.data[survey.mag_err_3], radius=0.1)
-    else:
-        cut = cut_isochrone_path(region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], iso, survey.catalog['mag_max'], radius=0.1)
+    cut = iso.cut_separation(survey.band_1.lower(), survey.band_2.lower(), region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], radius=0.1)
+    if survey.band_3 is not None:
+        cut &= iso.cut_separation(survey.band_2.lower(), survey.band_3.lower(), region.data[survey.mag_2], region.data[survey.mag_3], region.data[survey.mag_err_2], region.data[survey.mag_err_3], radius=0.1)
     data = region.data[cut]
 
     print('{} objects left after isochrone cut...').format(len(data))

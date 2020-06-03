@@ -43,12 +43,9 @@ cmap_gray_mask.set_bad('white')
 ################################################################################
 
 def get_iso_filter(region, data, iso):
-    if 'custom' in region.survey.isochrone['name'].lower():
-        iso_filter = iso.cut_separation(region.survey.band_1.lower(), region.survey.band_2.lower(), data[region.survey.mag_1], data[region.survey.mag_2], data[region.survey.mag_err_1], data[region.survey.mag_err_2], radius=0.1)
-        if region.survey.band_3 is not None:
-            iso_filter &= iso.cut_separation(region.survey.band_2.lower(), region.survey.band_3.lower(), data[region.survey.mag_2], data[region.survey.mag_3], data[region.survey.mag_err_2], data[region.survey.mag_err_3], radius=0.1)
-    else:
-        iso_filter = simple.search.cut_isochrone_path(data[region.survey.mag_1], data[region.survey.mag_2], data[region.survey.mag_err_1], data[region.survey.mag_err_2], iso, region.survey.catalog['mag_max'], radius=0.1)
+    iso_filter = iso.cut_separation(region.survey.band_1.lower(), region.survey.band_2.lower(), data[region.survey.mag_1], data[region.survey.mag_2], data[region.survey.mag_err_1], data[region.survey.mag_err_2], radius=0.1)
+    if region.survey.band_3 is not None:
+        iso_filter &= iso.cut_separation(region.survey.band_2.lower(), region.survey.band_3.lower(), data[region.survey.mag_2], data[region.survey.mag_3], data[region.survey.mag_err_2], data[region.survey.mag_err_3], radius=0.1)
     return iso_filter
 
 def get_g_radius(region, data, iso):
@@ -428,7 +425,7 @@ if __name__ == '__main__':
             try:
                 candidate_list = fitsio.read(args['infile'])
             except IOError:
-                raise IOError('Infile format not supported. Needs to be .npy or .fits')
+                raise IOError('Infile not found or format not supported. Needs to be .npy or .fits')
 
         try: # simple
             candidate_list = candidate_list[candidate_list['SIG'] > args['sig_cut']]

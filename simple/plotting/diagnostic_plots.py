@@ -7,6 +7,7 @@ __author__ = "Sidney Mau"
 import os
 import yaml
 import argparse
+import fitsio
 
 from astropy.coordinates import SkyCoord
 
@@ -421,7 +422,14 @@ if __name__ == '__main__':
         survey = simple.survey.Survey(cfg)
 
     if args['infile']:
-        candidate_list = np.load(args['infile'])
+        try:
+            candidate_list = np.load(args['infile'])
+        except IOError:
+            try:
+                candidate_list = fitsio.read(args['infile'])
+            except IOError:
+                raise IOError('Infile format not supported. Needs to be .npy or .fits')
+
         try: # simple
             candidate_list = candidate_list[candidate_list['SIG'] > args['sig_cut']]
         except: # ugali

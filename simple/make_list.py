@@ -36,10 +36,13 @@ if __name__ == '__main__':
     data = np.asarray(results)
 
     # Write fits output
-    fits.writeto(args['outname'], data, overwrite=True)
+    outname = args['outname']
+    if '.' not in outname:
+        outname += '.fits'
+    fits.writeto(outname, data, overwrite=True)
     
     # Diagnostic output
-    data = fitsio.read(args['outname'])
+    data = fitsio.read(outname)
     print("{} hotspots found.").format(len(data))
     cut_0 = (data['SIG'] > 5.5)
     print("{} hotspots found with SIG > 5.5.").format(len(data[cut_0]))

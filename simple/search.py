@@ -136,8 +136,7 @@ if __name__ == '__main__':
 
     #--------------------------------------------------------------------------
 
-    #distance_modulus_search_array = np.arange(16., survey.catalog['mag_max'], 0.5)
-    distance_modulus_search_array = np.arange(22.5, 26.5+.1, 0.5)
+    distance_modulus_search_array = np.arange(survey.moduli['start'], survey.moduli['end']+1e-10, survey.moduli['step'])
 
     ra_peak_array = []
     dec_peak_array = [] 

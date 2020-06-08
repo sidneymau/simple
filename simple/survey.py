@@ -53,6 +53,23 @@ class Survey():
             else:
                 self.reddening_3 = None
 
+        # Set defaults for some optional configs
+        grid_defaults = {'delta_x':0.01, 'smoothing':2.0, 'bin_edge':8.0, 'grid_dir':None}
+        if not (hasattr(self, 'grid') and self.grid is not None):
+            self.grid = grid_defaults
+        else:
+            for key in grid_defaults.keys():
+                if key not in self.grid.keys() or self.grid[key] is None:
+                    self.grid[key] = grid_defaults[key]
+
+        moduli_defaults = {'start':16, 'end':self.catalog['mag_max'], 'step':0.5}
+        if not (hasattr(self, 'moduli') and self.moduli is not None):
+            self.moduli = moduli_defaults
+        else:
+            for key in moduli_defaults.keys():
+                if key not in self.moduli.keys() or self.moduli[key] is None:
+                    self.moduli[key] = moduli_defaults[key]
+
         self.load_fracdet
 
     @property
@@ -295,26 +312,29 @@ class Region():
     
         x, y = self.proj.sphereToImage(data[self.survey.catalog['basis_1']][cut_magnitude_threshold], data[self.survey.catalog['basis_2']][cut_magnitude_threshold]) # Trimmed magnitude range for hotspot finding
         #x_full, y_full = proj.sphereToImage(data[basis_1], data[basis_2]) # If we want to use full magnitude range for significance evaluation
-        delta_x = 0.01
-        area = delta_x**2
-        smoothing = 2. / 60. # Was 3 arcmin
-        bins = np.arange(-8., 8. + 1.e-10, delta_x)
+        area = self.survey.grid['delta_x']**2
+        bins = np.arange(-self.survey.grid['bin_edge'], self.survey.grid['bin_edge'] + 1.e-10, self.survey.grid['delta_x'])
         centers = 0.5 * (bins[0: -1] + bins[1:])
         yy, xx = np.meshgrid(centers, centers)
     
         h = np.histogram2d(x, y, bins=[bins, bins])[0]
         
-        h_g = scipy.ndimage.filters.gaussian_filter(h, smoothing / delta_x)
-    
+        h_g = scipy.ndimage.filters.gaussian_filter(h, (self.survey.grid['smoothing']/60.) / self.survey.grid['delta_x'])
+        
         factor_array = np.arange(1., 5., 0.05)
-        rara, decdec = self.proj.imageToSphere(xx.flatten(), yy.flatten())
-        cutcut = (ugali.utils.healpix.angToPix(self.nside, rara, decdec) == self.pix_center).reshape(xx.shape)
-        threshold_density = 5 * characteristic_density * area
+        if self.survey.grid['grid_dir'] is None:
+            rara, decdec = self.proj.imageToSphere(xx.flatten(), yy.flatten())
+            cutcut = (ugali.utils.healpix.angToPix(self.nside, rara, decdec) == self.pix_center).reshape(xx.shape)
+        else:
+            cutcut_file = glob.glob('{}/*_{}.npz'.format(self.survey.grid['grid_dir'], self.pix_center))[0]
+            cutcut = np.load(cutcut_file)['arr_0']
+        smoothing = 2. / 60. # Was 3 arcmin
+        #threshold_density = 5 * characteristic_density * area
         for factor in factor_array:
-            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (area * characteristic_density * factor))
-            #print 'factor', factor, n_region, n_region < 10
+            threshold_density = area * characteristic_density * factor
+            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (threshold_density))
+            print 'factor', factor, n_region, n_region < 10
             if n_region < 10:
-                threshold_density = area * characteristic_density * factor
                 break
     
         h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > threshold_density)
@@ -354,7 +374,8 @@ class Region():
         n_obs_half_peak_array = []
         n_model_peak_array = []
     
-        size_array = np.arange(0.01, 0.3, 0.01)
+        #size_array = np.arange(0.01, 0.3, 0.01)
+        size_array = np.concatenate((np.arange(0.003, 0.01, 0.001), np.arange(0.01, 0.3, 0.01)))
         sig_array = np.tile(0., len(size_array))
         
         size_array_zero = np.concatenate([[0.], size_array])

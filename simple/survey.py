@@ -318,18 +318,24 @@ class Region():
         yy, xx = np.meshgrid(centers, centers)
     
         h = np.histogram2d(x, y, bins=[bins, bins])[0]
-        
         h_g = scipy.ndimage.filters.gaussian_filter(h, (self.survey.grid['smoothing']/60.) / self.survey.grid['delta_x'])
         
-        factor_array = np.arange(1., 5., 0.05)
         if self.survey.grid['grid_dir'] is None:
             rara, decdec = self.proj.imageToSphere(xx.flatten(), yy.flatten())
             cutcut = (ugali.utils.healpix.angToPix(self.nside, rara, decdec) == self.pix_center).reshape(xx.shape)
         else:
             cutcut_file = glob.glob('{}/*_{}.npz'.format(self.survey.grid['grid_dir'], self.pix_center))[0]
             cutcut = np.load(cutcut_file)['arr_0']
-        smoothing = 2. / 60. # Was 3 arcmin
-        #threshold_density = 5 * characteristic_density * area
+
+        # Course first to find cutoff region
+        for factor in [5., 4., 3., 2., 1.]:
+            threshold_density = area * characteristic_density * factor
+            h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (threshold_density))
+            print 'factor', factor, n_region, n_region < 10
+            if n_region >= 10:
+                break
+        # Fine to find exact threshold density
+        factor_array = np.arange(factor+0.05, 5., 0.05)
         for factor in factor_array:
             threshold_density = area * characteristic_density * factor
             h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (threshold_density))
@@ -337,7 +343,6 @@ class Region():
             if n_region < 10:
                 break
     
-        h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > threshold_density)
         h_region = np.ma.array(h_region, mask=(h_region < 1))
     
         x_peak_array = []

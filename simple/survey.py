@@ -339,7 +339,7 @@ class Region():
         for factor in factor_array:
             threshold_density = area * characteristic_density * factor
             h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (threshold_density))
-            print 'factor', factor, n_region, n_region < 10
+            #print 'factor', factor, n_region, n_region < 10
             if n_region < 10:
                 break
     

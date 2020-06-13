@@ -72,12 +72,14 @@ The fields of the config file are explained below. *Italicised* field names can 
   * `plot_dir`: Directory to store plots
 * `batch`:
   * `max_jobs`: Maximum jobs to run simultaneously on HTCondor
+
+The following fields are entirely optional and can all be left out.
 * *`(grid)`*:
   * *`(delta_x)`*: Step size for star binning in degrees. Default: 0.01
   * *`(smoothing)`* Gaussian smoothing kernal size in arcmin. Default: 2.0
   * *`(bin_edge)`* (Square) grid radius in degrees. Default: 8.0
-  * *`(grid_dir)`* Directory containing pre-made grid array selections. 
-*`(moduli)`*:
+  * *`(grid_dir)`* Directory containing pre-made grid array selections.
+* *`(moduli)`*:
   * *`(start)`*: Closest distance modulus to search. Default: 16
   * *`(stop)`*: Farthest distance modulus to search. Default: `mag_max`
   * *`(step)`*: Step size between distance moduli. Default: 0.5 

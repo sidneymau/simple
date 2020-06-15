@@ -5,7 +5,7 @@ __author__ = "Sidney Mau"
 
 import glob
 import os
-from importlib import import_module
+import importlib.util
 
 import numpy as np
 import healpy as hp
@@ -132,7 +132,10 @@ class Survey():
         data = np.concatenate(data_array)
         if self.catalog['other'] is not None:
             for module in self.catalog['other'].split('&&'):
-                other = import_module(module.strip())
+                #other = importlib.import_module(module.strip())  [Python 2 implementation]
+                spec = importlib.util.spec_from_file_location(module, os.getcwd()+'/{}.py'.format(module))
+                other = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(other)
                 data = data[other.sel(self, data)]
         return(data)
 

@@ -98,14 +98,17 @@ class Survey():
         """
         Load-in and return data for a list of healpixels as a numpy array.
         """
-        if type == 'stars':
-            sel = self.catalog['stars']
-        elif type == 'galaxies':
-            sel = self.catalog['galaxies']
-        elif type == 'all':
-            sel = ''
-        if self.catalog['quality']:
-            sel = '{} && {}'.format(sel, self.catalog['quality'])
+        if self.catalog['stars'] is None:
+            print("No star selection given. Assuming all objects are stars")
+            star_sel = None
+        else:
+            if type == 'stars':
+                star_sel = self.catalog['stars']
+            elif type == 'galaxies':
+                star_sel = self.catalog['galaxies']
+            elif type == 'all':
+                star_sel = None
+        sel = ' && '.join([s for s in (star_sel, self.catalog['quality']) if s is not None])
 
         data_array = []
         for pixel in pixels:
@@ -114,8 +117,11 @@ class Survey():
                 if not os.path.exists(infile):
                     continue
                 with fits.FITS(infile,vstorage='object') as f:
-                    w = f[1].where(sel)
-                    d = f[1][self.cols][w]
+                    if len(sel) > 0:
+                        w = f[1].where(sel)
+                        d = f[1][self.cols][w]
+                    else:
+                        d = f[1][self.cols][:]
                     if self.catalog['reddening']:
                         d[self.mag_1] -= d[self.reddening_1]
                         d[self.mag_2] -= d[self.reddening_2]
@@ -379,8 +385,8 @@ class Region():
         n_obs_half_peak_array = []
         n_model_peak_array = []
     
-        #size_array = np.arange(0.01, 0.3, 0.01)
-        size_array = np.concatenate((np.arange(0.003, 0.01, 0.001), np.arange(0.01, 0.3, 0.01)))
+        size_array = np.arange(0.01, 0.3, 0.01)
+        #size_array = np.concatenate((np.arange(0.003, 0.01, 0.001), np.arange(0.01, 0.3, 0.01)))
         sig_array = np.tile(0., len(size_array))
         
         size_array_zero = np.concatenate([[0.], size_array])

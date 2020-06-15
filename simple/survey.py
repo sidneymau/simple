@@ -78,7 +78,7 @@ class Survey():
         Load-in the fracdet map if it exists.
         """
         if self.survey['fracdet']:
-            print('Reading fracdet map {} ...').format(self.survey['fracdet'])
+            print('Reading fracdet map {} ...'.format(self.survey['fracdet']))
             fracdet = ugali.utils.healpix.read_map(self.survey['fracdet'])
         else:
             print('No fracdet map specified ...')
@@ -196,7 +196,7 @@ class Region():
     
         #characteristic_density = np.mean(n_goodcoverage) / area_coverage # per square degree
         characteristic_density = np.median(n_goodcoverage) / area_coverage # per square degree
-        print('Characteristic density = {:0.1f} deg^-2').format(characteristic_density)
+        print('Characteristic density = {:0.1f} deg^-2'.format(characteristic_density))
     
         # Use pixels with fracdet ~1.0 to estimate the characteristic density
         if self.fracdet is not None:
@@ -217,7 +217,7 @@ class Region():
     
             # Correct the characteristic density by the mean fracdet value
             characteristic_density /= mean_fracdet 
-            print('Characteristic density (fracdet corrected) = {:0.1f} deg^-2').format(characteristic_density)
+            print('Characteristic density (fracdet corrected) = {:0.1f} deg^-2'.format(characteristic_density))
     
         return(characteristic_density)
 

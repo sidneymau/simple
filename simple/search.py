@@ -49,7 +49,7 @@ def search_by_distance(survey, region, distance_modulus):
     around each individual hotspot, e.g., radius 0.3 to 0.5 deg.
     """
 
-    print('Distance = {:0.1f} kpc (m-M = {:0.1f})').format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus)
+    print('Distance = {:0.1f} kpc (m-M = {:0.1f})'.format(ugali.utils.projector.distanceModulusToDistance(distance_modulus), distance_modulus))
 
     iso = survey.get_isochrone(distance_modulus)
     cut = iso.cut_separation(survey.band_1.lower(), survey.band_2.lower(), region.data[survey.mag_1], region.data[survey.mag_2], region.data[survey.mag_err_1], region.data[survey.mag_err_2], radius=0.1)
@@ -57,7 +57,7 @@ def search_by_distance(survey, region, distance_modulus):
         cut &= iso.cut_separation(survey.band_2.lower(), survey.band_3.lower(), region.data[survey.mag_2], region.data[survey.mag_3], region.data[survey.mag_err_2], region.data[survey.mag_err_3], radius=0.1)
     data = region.data[cut]
 
-    print('{} objects left after isochrone cut...').format(len(data))
+    print('{} objects left after isochrone cut...'.format(len(data)))
 
     if (len(data) == 0):
         return [], [], [], [], [], [], [], []
@@ -122,14 +122,14 @@ if __name__ == '__main__':
     #--------------------------------------------------------------------------
 
     region = simple.survey.Region(survey, args['ra'], args['dec'])
-    print('Search coordinates: (RA, Dec) = ({:0.2f}, {:0.2f})').format(region.ra, region.dec)
-    print('Search healpixel: {} (nside = {})').format(region.pix_center, region.nside)
+    print('Search coordinates: (RA, Dec) = ({:0.2f}, {:0.2f})'.format(region.ra, region.dec))
+    print('Search healpixel: {} (nside = {})'.format(region.pix_center, region.nside))
     print('Healpixels: {}'.format(region.pix_neighbors))
 
     #--------------------------------------------------------------------------
 
     region.load_data()
-    print('Found {} objects').format(len(region.data))
+    print('Found {} objects'.format(len(region.data)))
     if (len(region.data) == 0):
         print('Ending search.')
         exit()

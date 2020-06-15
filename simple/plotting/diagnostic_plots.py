@@ -65,9 +65,9 @@ def get_g_radius(region, data, iso):
     f_range = np.linspace(centers[0], centers[-1], 1000)
     f_val = f_interp(f_range)
 
-    pairs = zip(f_range, f_val)
+    pairs = list(zip(f_range, f_val))
 
-    peak = max(pairs[:len(pairs)/4], key=lambda x: x[1]) # find peak within first quarter
+    peak = max(pairs[:int(len(pairs)/4)], key=lambda x: x[1]) # find peak within first quarter
 
     def peak_index(pairs, peak):
         for i in range(len(pairs)):
@@ -281,8 +281,8 @@ def radial_plot(ax, region, iso, g_radius, field_density=None):
         return(f_range, f_val, val, yerr)
 
     f_range, f_val, val, y_err = interp_values('stars', 'f')
-    pairs = zip(f_range, f_val)
-    peak = max(pairs[:len(pairs)/4], key=lambda x: x[1]) # find peak within first quarter
+    pairs = list(zip(f_range, f_val))
+    peak = max(pairs[:int(len(pairs)/4)], key=lambda x: x[1]) # find peak within first quarter
     def peak_index(pairs, peak):
         for i in range(len(pairs)):
             if pairs[i] == peak:
@@ -349,8 +349,8 @@ def make_plot(survey, candidate=None, **kwargs):
     print('Loading data...')
     stars = region.get_data('stars')
     galaxies = region.get_data('galaxies')
-    print('Found {} stars...').format(len(stars))
-    print('Found {} galaxies...').format(len(galaxies))
+    print('Found {} stars...'.format(len(stars)))
+    print('Found {} galaxies...'.format(len(galaxies)))
     iso = region.survey.get_isochrone(params['mod'])
     g_radius = get_g_radius(region, stars, iso)
 

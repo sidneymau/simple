@@ -75,7 +75,8 @@ def search_by_distance(survey, region, distance_modulus):
 
     x_peak_array, y_peak_array, angsep_peak_array = region.find_peaks(data, distance_modulus)
 
-    for x_peak, y_peak, angsep_peak in itertools.izip(x_peak_array, y_peak_array, angsep_peak_array):
+    #for x_peak, y_peak, angsep_peak in itertools.izip(x_peak_array, y_peak_array, angsep_peak_array): [Python 2 implementation]
+    for x_peak, y_peak, angsep_peak in zip(x_peak_array, y_peak_array, angsep_peak_array):
         # Aperture fitting
         print('Fitting aperture to hotspot...')
         ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = region.fit_aperture(data, distance_modulus, x_peak, y_peak, angsep_peak)

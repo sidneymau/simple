@@ -106,7 +106,7 @@ def search_by_distance(survey, region, distance_modulus):
 if __name__ == '__main__':
     # Construct argument parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config',type=str,required=False,default='defaults.yaml',
+    parser.add_argument('--config',type=str,required=False,default='config.yaml',
                         help='config file')
     parser.add_argument('--outfile',type=str,required=False,
                         help='Output file')

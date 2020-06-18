@@ -253,7 +253,7 @@ def hess_plot(ax, region, data, iso, g_radius):
     cax = divider.append_axes('right', size = '5%', pad=0)
     plt.colorbar(pc, cax=cax, label='counts')
 
-def radial_plot(ax, region, iso, g_radius, field_density=None):
+def radial_plot(ax, region, stars, galaxies, iso, g_radius, field_density=None):
     """Radial distribution plot"""
 
     bins = np.linspace(0, 0.4, 21) # deg
@@ -261,7 +261,11 @@ def radial_plot(ax, region, iso, g_radius, field_density=None):
     area = np.pi*(bins[1:]**2 - bins[0:-1]**2) * 60**2
 
     def interp_values(type, seln):
-        data = region.get_data(type)
+        if type == 'stars':
+            data = stars
+        elif type == 'galaxies':
+            data = galaxies
+        #data = region.get_data(type)
         iso_filter = get_iso_filter(region, data, iso)
         angsep = ugali.utils.projector.angsep(region.ra, region.dec, data[region.survey.catalog['basis_1']], data[region.survey.catalog['basis_2']])
         if seln == 'f':
@@ -368,7 +372,7 @@ def make_plot(survey, candidate=None, **kwargs):
     hess_plot(axs[1][2], region, stars, iso, g_radius)
     
     cm_plot(axs[2][1], region, galaxies, iso, g_radius, 'galaxies')
-    radial_plot(axs[2][2], region, iso, g_radius, field_density)
+    radial_plot(axs[2][2], region, stars, galaxies, iso, g_radius, field_density)
 
     # Name
     try: # ugali

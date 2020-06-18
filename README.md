@@ -87,4 +87,7 @@ The following fields are entirely optional and can all be left out.
 
 ## Notes
 
-By default, the plotting scripts will only produce plots for hotspots with statistical significance greater than 5.5 sigma. This threshold has intentionally chosen to be low (such that investigations can be made of very low-significance hotsposts and candidates) but also to minimize junk. This can be changed by specifying the optional `--sig_cut` argument to the plotting scripts.
+* By default, the plotting scripts will only produce plots for hotspots with statistical significance greater than 5.5 sigma. This threshold has intentionally chosen to be low (such that investigations can be made of very low-significance hotsposts and candidates) but also to minimize junk. This can be changed by specifying the optional `--sig_cut` argument to the plotting scripts.
+
+
+* One of the most computationally intensive steps in the search algorithm is the construction of a 2D boolean array representing which coordinates on a fine 2D grid are included in a given healpixel. This becomes a significant bottlneck when the `delta_x` parameter in the `grid` config is lowered below the default `0.01`. In such a case, the creation of these arrays can be done as a pre-processing step by using `create_grid_selections.py`. 

@@ -132,12 +132,12 @@ class Survey():
         data = np.concatenate(data_array)
         if self.catalog['other'] is not None:
             for module in self.catalog['other'].split('&&'):
-                try: # Python 2
-                    other = importlib.import_module(module.strip())
-                except: # Python 3
+                try: # Python 3
                     spec = importlib.util.spec_from_file_location(module, os.getcwd()+'/{}.py'.format(module))
                     other = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(other)
+                except: # Python 2
+                    other = importlib.import_module(module.strip())
                 data = data[other.sel(self, data)]
         return(data)
 

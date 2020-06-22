@@ -119,7 +119,10 @@ class Survey():
                 with fits.FITS(infile,vstorage='object') as f:
                     if len(sel) > 0:
                         w = f[1].where(sel)
-                        d = f[1][self.cols][w]
+                        if len(w) > 0:
+                            d = f[1][self.cols][w]
+                        else:
+                            continue
                     else:
                         d = f[1][self.cols][:]
                     if self.catalog['reddening']:
@@ -342,7 +345,7 @@ class Region():
         for factor in [5., 4., 3., 2., 1.]:
             threshold_density = area * characteristic_density * factor
             h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (threshold_density))
-            #print 'factor', factor, n_region, n_region < 10
+            #print('factor', factor, n_region, n_region < 10)
             if n_region >= 10:
                 break
         # Fine to find exact threshold density
@@ -350,7 +353,7 @@ class Region():
         for factor in factor_array:
             threshold_density = area * characteristic_density * factor
             h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (threshold_density))
-            #print 'factor', factor, n_region, n_region < 10
+            #print('factor', factor, n_region, n_region < 10
             if n_region < 10:
                 break
     
@@ -390,8 +393,8 @@ class Region():
         n_obs_half_peak_array = []
         n_model_peak_array = []
     
-        size_array = np.arange(0.01, 0.3, 0.01)
-        #size_array = np.concatenate((np.arange(0.003, 0.01, 0.001), np.arange(0.01, 0.3, 0.01)))
+        #size_array = np.arange(0.01, 0.3, 0.01)
+        size_array = np.concatenate((np.arange(0.003, 0.01, 0.001), np.arange(0.01, 0.3+1e-10, 0.01)))
         sig_array = np.tile(0., len(size_array))
         
         size_array_zero = np.concatenate([[0.], size_array])

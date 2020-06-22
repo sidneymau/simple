@@ -79,25 +79,25 @@ def search_by_distance(survey, region, distance_modulus):
     for x_peak, y_peak, angsep_peak in zip(x_peak_array, y_peak_array, angsep_peak_array):
         # Aperture fitting
         print('Fitting aperture to hotspot...')
-        ra_peaks, dec_peaks, r_peaks, sig_peaks, distance_moduli, n_obs_peaks, n_obs_half_peaks, n_model_peaks = region.fit_aperture(data, distance_modulus, x_peak, y_peak, angsep_peak)
+        ra_peak, dec_peak, r_peak, sig_peak, distance_modulus, n_obs_peak, n_obs_half_peak, n_model_peak = region.fit_aperture(data, distance_modulus, x_peak, y_peak, angsep_peak)
         
-        ra_peak_array.append(ra_peaks)
-        dec_peak_array.append(dec_peaks)
-        r_peak_array.append(r_peaks)
-        sig_peak_array.append(sig_peaks)
-        distance_modulus_array.append(distance_moduli)
-        n_obs_peak_array.append(n_obs_peaks)
-        n_obs_half_peak_array.append(n_obs_half_peaks)
-        n_model_peak_array.append(n_model_peaks)
+        ra_peak_array.append(ra_peak)
+        dec_peak_array.append(dec_peak)
+        r_peak_array.append(r_peak)
+        sig_peak_array.append(sig_peak)
+        distance_modulus_array.append(distance_modulus)
+        n_obs_peak_array.append(n_obs_peak)
+        n_obs_half_peak_array.append(n_obs_half_peak)
+        n_model_peak_array.append(n_model_peak)
 
-    ra_peak_array = np.concatenate(ra_peak_array)
-    dec_peak_array = np.concatenate(dec_peak_array)
-    r_peak_array = np.concatenate(r_peak_array)
-    sig_peak_array = np.concatenate(sig_peak_array)
-    distance_modulus_array = np.concatenate(distance_modulus_array)
-    n_obs_peak_array = np.concatenate(n_obs_peak_array)
-    n_obs_half_peak_array = np.concatenate(n_obs_half_peak_array)
-    n_model_peak_array = np.concatenate(n_model_peak_array)
+    ra_peak_array = np.array(ra_peak_array)
+    dec_peak_array = np.array(dec_peak_array)
+    r_peak_array = np.array(r_peak_array)
+    sig_peak_array = np.array(sig_peak_array)
+    distance_modulus_array = np.array(distance_modulus_array)
+    n_obs_peak_array = np.array(n_obs_peak_array)
+    n_obs_half_peak_array = np.array(n_obs_half_peak_array)
+    n_model_peak_array = np.array(n_model_peak_array)
 
     return ra_peak_array, dec_peak_array, r_peak_array, sig_peak_array, distance_modulus_array, n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array
 

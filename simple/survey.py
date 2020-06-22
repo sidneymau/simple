@@ -413,4 +413,4 @@ class Region():
         # Compile resilts
         print('Candidate: x_peak: {:12.3f}, y_peak: {:12.3f}, r_peak: {:12.3f}, sig: {:12.3f}, ra_peak: {:12.3f}, dec_peak: {:12.3f}'.format(x_peak, y_peak, r_peak, np.max(sig_array), ra_peak, dec_peak))
 
-        return ra_peak, dec_peak, r_peak, sig_array[index_peak] distance_modulus, n_obs_peak, n_obs_half_peak, n_model_peak
+        return ra_peak, dec_peak, r_peak, sig_array[index_peak], distance_modulus, n_obs_peak, n_obs_half_peak, n_model_peak

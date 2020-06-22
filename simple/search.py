@@ -223,4 +223,4 @@ if __name__ == '__main__':
         write_output(survey.output['results_dir'], survey.catalog['nside'], region.pix_center,
                      nan_array, nan_array, nan_array, nan_array, 
                      nan_array, nan_array, nan_array, nan_array,
-                     [mc_source_id], 0, args['outfile'])
+                     [0], 0, args['outfile'])

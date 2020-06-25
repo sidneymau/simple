@@ -35,6 +35,11 @@ if __name__ == '__main__':
             results.append(row)
     data = np.asarray(results)
 
+    # Remove nans and sort by sig
+    nans = np.isnan(data['SIG'])
+    data = data[~nans]
+    data = np.sort(data, order='SIG')[::-1]
+
     # Write fits output
     outname = args['outname']
     if '.' not in outname:

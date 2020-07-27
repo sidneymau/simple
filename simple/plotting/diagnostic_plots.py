@@ -126,7 +126,6 @@ def density_plot(ax, region, data, g_radius, iso, type):
     ra = fd[region.survey.catalog['basis_1']]
     dec = fd[region.survey.catalog['basis_2']]
     x, y = region.proj.sphereToImage(ra, dec)
-    x, y = region.proj.sphereToImage(data[filter][region.survey.catalog['basis_1']], data[filter][region.survey.catalog['basis_2']])
 
     bound = 0.5 #1.
     steps = 100.

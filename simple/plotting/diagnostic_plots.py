@@ -155,8 +155,8 @@ def star_plot(ax, region, data, iso):
 
     ax.scatter(x, y, edgecolor='none', s=3, c='black')
 
-    ax.set_xlim(0.25, -0.25)
-    ax.set_ylim(-0.25, 0.25)
+    ax.set_xlim(0.5, -0.5)
+    ax.set_ylim(-0.5, 0.5)
     ax.set_xlabel(r'$\Delta$ RA (deg)')
     ax.set_ylabel(r'$\Delta$ Dec (deg)')
     ax.text(0.05, 0.95, 'Stars', transform=ax.transAxes, verticalalignment='top')
@@ -174,8 +174,13 @@ def star_plot_aperture(ax, region, data, iso, r):
     aperture = Circle(xy=(0,0), radius=r, edgecolor='blue', linewidth=1.0, linestyle = '--', fill=False, zorder=10)
     ax.add_patch(aperture)
 
-    ax.set_xlim(r*5, -r*5)
-    ax.set_ylim(-r*5, r*5)
+    inner = Circle(xy=(0,0), radius=0.3, edgecolor='red', linewidth=1.0, linestyle = '--', fill=False, zorder=10)
+    ax.add_patch(inner)
+    outer = Circle(xy=(0,0), radius=0.5, edgecolor='red', linewidth=1.0, linestyle = '--', fill=False, zorder=10)
+    ax.add_patch(outer)
+
+    ax.set_xlim(r*2, -r*2)
+    ax.set_ylim(-r*2, r*2)
     ax.set_xlabel(r'$\Delta$ RA (deg)')
     ax.set_ylabel(r'$\Delta$ Dec (deg)')
     ax.text(0.05, 0.95, 'Stars', transform=ax.transAxes, verticalalignment='top')
@@ -210,7 +215,7 @@ def cm_plot(ax, region, data, iso, g_radius, type):
 
     ax.set_xlim(-0.5, 1)
     #ax.set_ylim(mag_max, 16)
-    ax.set_ylim(25.5, 16)
+    ax.set_ylim(26.0, 16)
     ax.set_xlabel('{} - {} (mag)'.format(region.survey.band_1.lower(), region.survey.band_2.lower()))
     ax.set_ylabel('{} (mag)'.format(region.survey.band_1.lower()))
 
@@ -228,7 +233,7 @@ def hess_plot(ax, region, data, iso, g_radius):
 
     xbins = np.arange(-0.5, 1.1, 0.1)
     #ybins = np.arange(16., mag_max + 0.5, 0.5)
-    ybins = np.arange(16., 25.0, 0.5)
+    ybins = np.arange(16., 26.0, 0.5)
     foreground = np.histogram2d(data[region.survey.mag_1][inner] - data[region.survey.mag_2][inner], data[region.survey.mag_1][inner], bins=[xbins, ybins])
     background = np.histogram2d(data[region.survey.mag_1][outer] - data[region.survey.mag_2][outer], data[region.survey.mag_1][outer], bins=[xbins, ybins])
     fg = foreground[0].T
@@ -242,7 +247,7 @@ def hess_plot(ax, region, data, iso, g_radius):
 
     ax.set_xlim(-0.5, 1.0)
     #ax.set_ylim(mag_max, 16)
-    ax.set_ylim(25.0, 16)
+    ax.set_ylim(26.0, 16)
     ax.set_xlabel('{} - {} (mag)'.format(region.survey.band_1.lower(), region.survey.band_2.lower()))
     ax.set_ylabel('{} (mag)'.format(region.survey.band_1.lower()))
 
@@ -358,7 +363,7 @@ def make_plot(survey, candidate=None, **kwargs):
     iso = region.survey.get_isochrone(params['mod'])
     g_radius = get_g_radius(region, stars, iso)
 
-    print('Making diagnostic plots for ({}, {}) = ({}, {})...'.format(survey.catalog['basis_1'], survey.catalog['basis_2'], ra, dec))
+    print('Making diagnostic plots for (SIG, {}, {}) = ({}, {}, {})...'.format(survey.catalog['basis_1'], survey.catalog['basis_2'], sig, ra, dec))
     fig, axs = plt.subplots(3, 3, figsize=(15, 15))
     fig.subplots_adjust(wspace=0.5, hspace=0.5)
     density_plot(axs[0][0], region, stars, g_radius, iso, 'stars')
@@ -374,6 +379,7 @@ def make_plot(survey, candidate=None, **kwargs):
     cm_plot(axs[2][1], region, galaxies, iso, g_radius, 'galaxies')
     radial_plot(axs[2][2], region, stars, galaxies, iso, g_radius, field_density)
 
+    """
     # Name
     try: # ugali
         association_string = candidate['NAME']
@@ -394,10 +400,12 @@ def make_plot(survey, candidate=None, **kwargs):
 
     association_string = str(np.char.strip(association_string))
     association_string = repr(association_string)
+    """
     info_string = r'($\alpha$, $\delta$, $\mu$) = ({:0.2f}, {:0.2f}, {:0.2f})'.format(ra, dec, mod)
     detect_string = r'($\sigma$, $r$, n_obs, n_model) = ({:0.2f}, {:0.2f}, {:0.2f}, {:0.2f})'.format(sig, r*60, n_obs, n_model)
 
-    plt.suptitle(association_string+'\n' + info_string+'\n' + detect_string, fontsize=24)
+    #plt.suptitle(association_string+'\n' + info_string+'\n' + detect_string, fontsize=24)
+    plt.suptitle(info_string+'\n' + detect_string, fontsize=24)
 
     file_name = 'candidate_{:0.2f}_{:0.2f}_{:0.2f}'.format(sig, ra, dec)
     plt.savefig(survey.output['plot_dir']+'/'+file_name+'.png',  bbox_inches='tight')

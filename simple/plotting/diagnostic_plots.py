@@ -160,7 +160,7 @@ def star_plot(ax, region, data, iso):
     ax.set_ylabel(r'$\Delta$ Dec (deg)')
     ax.text(0.05, 0.95, 'Stars', transform=ax.transAxes, verticalalignment='top')
 
-def star_plot_aperture(ax, region, data, iso, r):
+def star_plot_aperture(ax, region, data, iso, r, g_radius):
     """Zoomed star bin plot, with aperture"""
 
     iso_filter = get_iso_filter(region, data, iso)
@@ -170,19 +170,23 @@ def star_plot_aperture(ax, region, data, iso, r):
     dot_size = np.clip(3*(.05/r), 1, 6)
     ax.scatter(x, y, edgecolor='none', s=dot_size, c='black')
 
-    aperture = Circle(xy=(0,0), radius=r, edgecolor='blue', linewidth=1.0, linestyle = '--', fill=False, zorder=10)
+    aperture = Circle(xy=(0,0), radius=r, edgecolor='blue', linewidth=1.0, linestyle = '--', fill=False, zorder=10, label='aperture')
     ax.add_patch(aperture)
+    g_radius_circle = Circle(xy=(0,0), radius=g_radius, edgecolor='green', linewidth=1.0, linestyle = '--', fill=False, zorder=10, label='g_radius')
+    ax.add_patch(g_radius_circle)
 
-    inner = Circle(xy=(0,0), radius=0.3, edgecolor='red', linewidth=1.0, linestyle = '--', fill=False, zorder=10)
+    inner = Circle(xy=(0,0), radius=0.3, edgecolor='red', linewidth=1.0, linestyle = '--', fill=False, zorder=10, label='background')
     ax.add_patch(inner)
     outer = Circle(xy=(0,0), radius=0.5, edgecolor='red', linewidth=1.0, linestyle = '--', fill=False, zorder=10)
     ax.add_patch(outer)
 
-    ax.set_xlim(r*2, -r*2)
-    ax.set_ylim(-r*2, r*2)
+    lim = max(r, g_radius)
+    ax.set_xlim(lim*2, -lim*2)
+    ax.set_ylim(-lim*2, lim*2)
     ax.set_xlabel(r'$\Delta$ RA (deg)')
     ax.set_ylabel(r'$\Delta$ Dec (deg)')
     ax.text(0.05, 0.95, 'Stars', transform=ax.transAxes, verticalalignment='top')
+    ax.legend(loc='upper right')
 
 
 def cm_plot(ax, region, data, iso, g_radius, type):
@@ -256,6 +260,54 @@ def hess_plot(ax, region, data, iso, g_radius):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size = '5%', pad=0)
     plt.colorbar(pc, cax=cax, label='counts')
+
+
+def size_plot(ax, region, data, iso, r, g_radius):
+    iso_filter = get_iso_filter(region, data, iso)
+
+    angsep = ugali.utils.projector.angsep(region.ra, region.dec, data[region.survey.catalog['basis_1']], data[region.survey.catalog['basis_2']])
+    nbhd = (angsep < g_radius)
+    #close = (angsep < 0.1)
+    #far = (angsep < 0.3)
+    aperture = (angsep < r)
+
+    mn, mx = -0.1, 0.5
+    bins = np.linspace(mn, mx, int((mx-mn)*100+1))
+    ax.axvline(x=0.0, color='0.5', linestyle='--')
+    ax.hist(data[aperture & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='blue', label='r < {:.3f}$^\circ$'.format(r))
+    ax.hist(data[nbhd & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='green', label='r < {:.3f}$^\circ$'.format(g_radius))
+    #ax.hist(data[close & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='blue', label='r < 0.1$^\circ$')
+    #ax.hist(data[far & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='red', label='r < 0.3$^\circ$')
+    ax.set_xlim(mn, mx)
+    ax.set_xlabel(region.survey.catalog['size'])
+    ax.set_ylabel('Counts')
+    ax.legend(loc='upper right')
+
+def colorcolor_plot(ax, region, data, iso, r, g_radius):
+    filtered_stars = data
+    unfiltered_stars = region.get_data('stars', use_other=False)
+
+    angsep_filtered = ugali.utils.projector.angsep(region.ra, region.dec, filtered_stars[region.survey.catalog['basis_1']], filtered_stars[region.survey.catalog['basis_2']])
+    nbhd = (angsep_filtered < max(r, g_radius))
+    small_nbhd = (angsep_filtered < min(r, g_radius))
+    color = 'green' if g_radius < r else 'blue'
+
+    angsep_unfiltered = ugali.utils.projector.angsep(region.ra, region.dec, unfiltered_stars[region.survey.catalog['basis_1']], unfiltered_stars[region.survey.catalog['basis_2']])
+    unfiltered_nbhd = (angsep_unfiltered < max(r, g_radius))
+    unfiltered_stars = unfiltered_stars[unfiltered_nbhd]
+
+    iso_filter = get_iso_filter(region, filtered_stars, iso)
+    #iso_filter_unfiltered = get_iso_filter(region, unfiltered_stars, iso)
+
+    ax.scatter(unfiltered_stars[region.survey.mag_1]-unfiltered_stars[region.survey.mag_2], unfiltered_stars[region.survey.mag_2]-unfiltered_stars[region.survey.mag_3], s=2, c='0.5', label='unfiltered stars')  
+    ax.scatter(filtered_stars[iso_filter & nbhd][region.survey.mag_1]-filtered_stars[iso_filter & nbhd][region.survey.mag_2], filtered_stars[iso_filter & nbhd][region.survey.mag_2]-filtered_stars[iso_filter & nbhd][region.survey.mag_3], s=5, c='red', label='filtered stars')
+    ax.scatter(filtered_stars[iso_filter & small_nbhd][region.survey.mag_1]-filtered_stars[iso_filter & small_nbhd][region.survey.mag_2], filtered_stars[iso_filter & small_nbhd][region.survey.mag_2]-filtered_stars[iso_filter & small_nbhd][region.survey.mag_3], s=25, c=color, label='r < {:.3f}$^\circ$'.format(min(g_radius, r)))
+    ax.set_xlim(-0.3, 1.8)
+    ax.set_xlabel('g - r')
+    ax.set_ylim(-0.2, 0.8)
+    ax.set_ylabel('r - i')
+    ax.legend(loc='upper left')
+
 
 def radial_plot(ax, region, stars, galaxies, iso, g_radius, field_density=None):
     """Radial distribution plot"""
@@ -331,7 +383,9 @@ def make_plot(survey, candidate=None, **kwargs):
     in kwargs.
     Parameters: sig, ra, dec, mod, r, n_obs, n_model
     """
-    keys = ['sig', 'ra', 'dec', 'mod', 'r', 'n_obs', 'n_model']
+    required_keys = ['sig', 'ra', 'dec', 'mod', 'r', 'n_model'] # Used to make plots
+    optional_keys = ['n_obs', 'id', 'med', 'std'] # Only used for labelling
+    keys = required_keys + optional_keys
     params = dict.fromkeys(keys)
     if candidate is not None:
         try: # simple
@@ -342,41 +396,51 @@ def make_plot(survey, candidate=None, **kwargs):
         params['dec']     = round(candidate[survey.catalog['basis_2']], 2)
         params['mod']     = round(candidate['MODULUS'], 2)
         params['r']       = round(candidate['R'], 3)
-        params['n_obs']   = candidate['N_OBS']
         params['n_model'] = candidate['N_MODEL']
+        params['n_obs']   = candidate['N_OBS']
+        params['id']      = candidate['MC_SOURCE_ID']
+        params['med']     = candidate['med']
+        params['std']     = candidate['std']
     for key in keys:
         try:
             params[key] = kwargs[key]
         except KeyError: # key not in kwargs
             if params[key] is None: # Missing argument
-                raise TypeError('{} parameter required but not specified'.format(key))
-    sig, ra, dec, mod, r, n_obs, n_model = [params[key] for key in keys]
+                if key in required_keys:
+                    raise TypeError('{} parameter required but not specified'.format(key))
+                else:
+                    params[key] = -1
+    sig, ra, dec, mod, r, n_model, n_obs, idee, med, std = [params[key] for key in keys]
     field_density = round(n_model/(np.pi * (r*60)**2), 4)
 
     region = simple.survey.Region(survey, ra, dec) 
     print('Loading data...')
     stars = region.get_data('stars')
     galaxies = region.get_data('galaxies')
+    both = np.concatenate((stars, galaxies))
     print('Found {} stars...'.format(len(stars)))
     print('Found {} galaxies...'.format(len(galaxies)))
     iso = region.survey.get_isochrone(params['mod'])
     g_radius = get_g_radius(region, stars, iso)
 
     print('Making diagnostic plots for (SIG, {}, {}) = ({}, {}, {})...'.format(survey.catalog['basis_1'], survey.catalog['basis_2'], sig, ra, dec))
-    fig, axs = plt.subplots(3, 3, figsize=(15, 15))
-    fig.subplots_adjust(wspace=0.5, hspace=0.5)
-    density_plot(axs[0][0], region, stars, g_radius, iso, 'stars')
-    density_plot(axs[1][0], region, stars, g_radius, iso, 'blue_stars')
-    density_plot(axs[2][0], region, galaxies, g_radius, iso, 'galaxies')
+    fig, axs = plt.subplots(3, 4, figsize=(21, 13.5))
+    fig.subplots_adjust(wspace=0.5, hspace=0.3)
 
-    star_plot(axs[0][1], region, stars, iso)
-    star_plot_aperture(axs[0][2], region, stars, iso, r)
+    #density_plot(axs[1][0], region, stars, g_radius, iso, 'blue_stars')
 
+    star_plot(axs[0][0], region, stars, iso)
+    star_plot_aperture(axs[0][1], region, stars, iso, r, g_radius)
+    colorcolor_plot(axs[0][2], region, stars, iso, r, g_radius)
+    size_plot(axs[0][3],region, both, iso, r, g_radius)
+    density_plot(axs[1][0], region, stars, g_radius, iso, 'stars')
     cm_plot(axs[1][1], region, stars, iso, g_radius, 'stars')
     hess_plot(axs[1][2], region, stars, iso, g_radius)
-    
+    radial_plot(axs[1][3], region, stars, galaxies, iso, g_radius, field_density)
+    density_plot(axs[2][0], region, galaxies, g_radius, iso, 'galaxies')
     cm_plot(axs[2][1], region, galaxies, iso, g_radius, 'galaxies')
-    radial_plot(axs[2][2], region, stars, galaxies, iso, g_radius, field_density)
+    fig.delaxes(axs[2][2])
+    fig.delaxes(axs[2][3])
 
     """
     # Name
@@ -402,11 +466,12 @@ def make_plot(survey, candidate=None, **kwargs):
     """
     info_string = r'($\alpha$, $\delta$, $\mu$) = ({:0.2f}, {:0.2f}, {:0.2f})'.format(ra, dec, mod)
     detect_string = r'($\sigma$, $r$, n_obs, n_model) = ({:0.2f}, {:0.2f}, {:0.2f}, {:0.2f})'.format(sig, r*60, n_obs, n_model)
+    stats_string = r'(median ratio, deviation) = ({:0.2f}, {:0.2f})'.format(med, std)
 
     #plt.suptitle(association_string+'\n' + info_string+'\n' + detect_string, fontsize=24)
-    plt.suptitle(info_string+'\n' + detect_string, fontsize=24)
+    plt.suptitle(info_string+'\n' + detect_string+'\n' + stats_string, fontsize=24)
 
-    file_name = 'candidate_{:0.2f}_{:0.2f}_{:0.2f}'.format(sig, ra, dec)
+    file_name = 'candidate_{}_{:0.2f}_{:0.2f}_{:0.2f}'.format(int(idee), sig, ra, dec)
     plt.savefig(survey.output['plot_dir']+'/'+file_name+'.png',  bbox_inches='tight')
     plt.close()
 
@@ -423,6 +488,9 @@ if __name__ == '__main__':
     parser.add_argument('--modulus', type=float, required=False, help='Distance modulus')
     parser.add_argument('--n_obs', type=float, required=False, help='Observed stars')
     parser.add_argument('--n_model', type=float, required=False, help='Expected number of field stars')
+    parser.add_argument('--id', type=int, required=False, help='Unique ID')
+    parser.add_argument('--med', type=float, required=False, help='Peak to median ratio')
+    parser.add_argument('--std', type=float, required=False, help='Standard devation of peak')
     args = vars(parser.parse_args())
 
     with open(args['config'], 'r') as ymlfile:
@@ -447,5 +515,5 @@ if __name__ == '__main__':
             make_plot(survey, candidate)
 
     else:
-        make_plot(survey, sig=args['sig'], ra=args['ra'], dec=args['dec'], r=args['r'], mod=args['modulus'], n_obs=args['n_obs'], n_model=args['n_model'])
+        make_plot(survey, sig=args['sig'], ra=args['ra'], dec=args['dec'], r=args['r'], mod=args['modulus'], n_obs=args['n_obs'], n_model=args['n_model'], idee=args['id'])
          

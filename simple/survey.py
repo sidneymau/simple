@@ -53,6 +53,9 @@ class Survey():
             else:
                 self.reddening_3 = None
 
+        if self.catalog['size']:
+            self.cols.append(self.catalog['size'])
+
         # Set defaults for some optional configs
         grid_defaults = {'delta_x':0.01, 'smoothing':2.0, 'bin_edge':8.0, 'grid_dir':None}
         if not (hasattr(self, 'grid') and self.grid is not None):
@@ -94,7 +97,7 @@ class Survey():
         pix_neighbors = np.concatenate([[pix_select], hp.get_all_neighbours(self.catalog['nside'], pix_select)])
         return(pix_neighbors)
 
-    def get_data(self, pixels, type='stars'):
+    def get_data(self, pixels, type='stars', use_other=True):
         """
         Load-in and return data for a list of healpixels as a numpy array.
         """
@@ -133,7 +136,7 @@ class Survey():
                         d = d[[name for name in d.dtype.names if name not in [self.reddening_1, self.reddening_2, self.reddening_3]]]
                     data_array.append(d)
         data = np.concatenate(data_array)
-        if self.catalog['other'] is not None:
+        if use_other and (self.catalog['other'] is not None): 
             for module in self.catalog['other'].split('&&'):
                 try: # Python 3
                     spec = importlib.util.spec_from_file_location(module, os.getcwd()+'/{}.py'.format(module))
@@ -171,11 +174,11 @@ class Region():
         self.pix_neighbors = np.concatenate([[self.pix_center], hp.get_all_neighbours(self.nside, self.pix_center)])
         self.characteristic_density = None
 
-    def get_data(self, type='stars'):
-        return(self.survey.get_data(self.pix_neighbors, type))
+    def get_data(self, type='stars', use_other=True):
+        return(self.survey.get_data(self.pix_neighbors, type, use_other))
 
-    def load_data(self, type='stars'):
-        self.data = self.get_data(type)
+    def load_data(self, type='stars', use_other=True):
+        self.data = self.get_data(type, use_other)
 
     #def get_stars(self, data):
     #    return(self.survey.get_stars(data))

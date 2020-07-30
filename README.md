@@ -58,9 +58,9 @@ The fields of the config file are explained below. *Italicised* field names can 
   * *`reddening`*: Reddening correction to be subtracted from `mag`, with the band replaced by `{}`: `mag_deredenned = mag - reddening`. Ex: `EBV_{}`. 
   * *`quality`*: Quality selection to reduce data. Ex: `PSF_MAG_G < 24.5 && PSF_MAG_R < 24.0`
   * *`stars`*: Selection for stars. Ex: `EXTENDED_CLASS < 1` (Note: required for plotting)
-  * *`galaxies`*: Selection for:w
-  galaxies. Ex:`EXTENDED_CLASS >= 1` (Note: required for plotting)
+  * *`galaxies`*: Selection for galaxies. Ex:`EXTENDED_CLASS >= 1` (Note: required for plotting)
   * *`other`*: An additional selection contained in a `.py` file. The file must contain a function named `sel(survey, data)` which takes a `survey.Survey` object and data array as arguments, and returns a boolean array of the same length as `data`. Ex: `extra_selection`, where there is a file named `extra_selection.py` in the directory where the search is being run. 
+  * *`size`*: Name of morphological size parameter
 * `isochrone`:
   * `name`: Name of `ugali` isochrone class to use
   * `survey`: Name of survey to use in isochrone creation

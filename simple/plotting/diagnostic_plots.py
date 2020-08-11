@@ -286,6 +286,7 @@ def size_plot(ax, region, data, iso, r, g_radius):
 def colorcolor_plot(ax, region, data, iso, r, g_radius):
     filtered_stars = data
     unfiltered_stars = region.get_data('stars', use_other=False)
+    print('Found {} unfiltered stars...'.format(len(unfiltered_stars)))
 
     angsep_filtered = ugali.utils.projector.angsep(region.ra, region.dec, filtered_stars[region.survey.catalog['basis_1']], filtered_stars[region.survey.catalog['basis_2']])
     nbhd = (angsep_filtered < max(r, g_radius))

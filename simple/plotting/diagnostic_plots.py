@@ -263,6 +263,7 @@ def hess_plot(ax, region, data, iso, g_radius):
 
 
 def size_plot(ax, region, data, iso, r, g_radius):
+    # Data is both stars+galaxies. No star separation applied
     iso_filter = get_iso_filter(region, data, iso)
 
     angsep = ugali.utils.projector.angsep(region.ra, region.dec, data[region.survey.catalog['basis_1']], data[region.survey.catalog['basis_2']])
@@ -270,39 +271,38 @@ def size_plot(ax, region, data, iso, r, g_radius):
     #close = (angsep < 0.1)
     #far = (angsep < 0.3)
     aperture = (angsep < r)
+    bkgd = (angsep > 0.3) & (angsep < 0.5)
 
     mn, mx = -0.1, 0.5
-    bins = np.linspace(mn, mx, int((mx-mn)*100+1))
+    bins = np.linspace(mn, mx, int((mx-mn)*50+1))
     ax.axvline(x=0.0, color='0.5', linestyle='--')
-    ax.hist(data[aperture & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='blue', label='r < {:.3f}$^\circ$'.format(r))
-    ax.hist(data[nbhd & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='green', label='r < {:.3f}$^\circ$'.format(g_radius))
+    ax.hist(data[aperture & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='blue', label='r < {:.3f}$^\circ$'.format(r), density=True)
+    ax.hist(data[nbhd & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='green', label='r < {:.3f}$^\circ$'.format(g_radius), density=True)
+    ax.hist(data[bkgd & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='red', label='background', density=True)
+    """
+    ax.hist(data[aperture & iso_filter][region.survey.catalog['size']], bins=bins, alpha=0.5, color='blue', label='r < {:.3f}$^\circ$'.format(r), density=True)
+    ax.hist(data[nbhd & iso_filter][region.survey.catalog['size']], bins=bins, alpha=0.5, color='green', label='r < {:.3f}$^\circ$'.format(g_radius), density=True)
+    ax.hist(data[bkgd & iso_filter][region.survey.catalog['size']], bins=bins, alpha=0.5, color='red', label='background', density=True)
+    """
     #ax.hist(data[close & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='blue', label='r < 0.1$^\circ$')
     #ax.hist(data[far & iso_filter][region.survey.catalog['size']], bins=bins, histtype='step', edgecolor='red', label='r < 0.3$^\circ$')
     ax.set_xlim(mn, mx)
     ax.set_xlabel(region.survey.catalog['size'])
-    ax.set_ylabel('Counts')
+    ax.set_ylabel('PDF')
     ax.legend(loc='upper right')
 
-def colorcolor_plot(ax, region, data, iso, r, g_radius):
-    filtered_stars = data
+def colorcolor_plot(ax, region, r, g_radius):
     unfiltered_stars = region.get_data('stars', use_other=False)
     print('Found {} unfiltered stars...'.format(len(unfiltered_stars)))
 
-    angsep_filtered = ugali.utils.projector.angsep(region.ra, region.dec, filtered_stars[region.survey.catalog['basis_1']], filtered_stars[region.survey.catalog['basis_2']])
-    nbhd = (angsep_filtered < max(r, g_radius))
-    small_nbhd = (angsep_filtered < min(r, g_radius))
-    color = 'green' if g_radius < r else 'blue'
-
     angsep_unfiltered = ugali.utils.projector.angsep(region.ra, region.dec, unfiltered_stars[region.survey.catalog['basis_1']], unfiltered_stars[region.survey.catalog['basis_2']])
-    unfiltered_nbhd = (angsep_unfiltered < max(r, g_radius))
-    unfiltered_stars = unfiltered_stars[unfiltered_nbhd]
+    nbhd = (angsep_unfiltered < g_radius)
+    aperture = (angsep_unfiltered < r)
+    bkgd = (angsep_unfiltered > 0.3) & (angsep_unfiltered < 0.5)
 
-    iso_filter = get_iso_filter(region, filtered_stars, iso)
-    #iso_filter_unfiltered = get_iso_filter(region, unfiltered_stars, iso)
-
-    ax.scatter(unfiltered_stars[region.survey.mag_1]-unfiltered_stars[region.survey.mag_2], unfiltered_stars[region.survey.mag_2]-unfiltered_stars[region.survey.mag_3], s=2, c='0.5', label='unfiltered stars')  
-    ax.scatter(filtered_stars[iso_filter & nbhd][region.survey.mag_1]-filtered_stars[iso_filter & nbhd][region.survey.mag_2], filtered_stars[iso_filter & nbhd][region.survey.mag_2]-filtered_stars[iso_filter & nbhd][region.survey.mag_3], s=5, c='red', label='filtered stars')
-    ax.scatter(filtered_stars[iso_filter & small_nbhd][region.survey.mag_1]-filtered_stars[iso_filter & small_nbhd][region.survey.mag_2], filtered_stars[iso_filter & small_nbhd][region.survey.mag_2]-filtered_stars[iso_filter & small_nbhd][region.survey.mag_3], s=25, c=color, label='r < {:.3f}$^\circ$'.format(min(g_radius, r)))
+    ax.scatter(unfiltered_stars[aperture][region.survey.mag_1]-unfiltered_stars[aperture][region.survey.mag_2], unfiltered_stars[aperture][region.survey.mag_2]-unfiltered_stars[aperture][region.survey.mag_3], s=5+(r<g_radius)*20, c='blue', label='r < {:.3f}$^\circ$'.format(r), zorder=(r < g_radius)+1, edgecolor=('k' if r<g_radius else None))
+    ax.scatter(unfiltered_stars[nbhd][region.survey.mag_1]-unfiltered_stars[nbhd][region.survey.mag_2], unfiltered_stars[nbhd][region.survey.mag_2]-unfiltered_stars[nbhd][region.survey.mag_3], s=5+(g_radius<r)*20, c='green', label='r < {:.3f}$^\circ$'.format(g_radius), zorder=(g_radius < r)+1, edgecolor=('k' if g_radius<r else None))
+    ax.scatter(unfiltered_stars[bkgd][region.survey.mag_1]-unfiltered_stars[bkgd][region.survey.mag_2], unfiltered_stars[bkgd][region.survey.mag_2]-unfiltered_stars[bkgd][region.survey.mag_3], s=1, c='red', label='background', zorder=0)
     ax.set_xlim(-0.3, 1.8)
     ax.set_xlabel('g - r')
     ax.set_ylim(-0.2, 0.8)
@@ -432,7 +432,7 @@ def make_plot(survey, candidate=None, **kwargs):
 
     star_plot(axs[0][0], region, stars, iso)
     star_plot_aperture(axs[0][1], region, stars, iso, r, g_radius)
-    colorcolor_plot(axs[0][2], region, stars, iso, r, g_radius)
+    colorcolor_plot(axs[0][2], region, r, g_radius)
     size_plot(axs[0][3],region, both, iso, r, g_radius)
     density_plot(axs[1][0], region, stars, g_radius, iso, 'stars')
     cm_plot(axs[1][1], region, stars, iso, g_radius, 'stars')

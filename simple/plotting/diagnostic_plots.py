@@ -385,7 +385,7 @@ def make_plot(survey, candidate=None, **kwargs):
     Parameters: sig, ra, dec, mod, r, n_obs, n_model
     """
     required_keys = ['sig', 'ra', 'dec', 'mod', 'r', 'n_model'] # Used to make plots
-    optional_keys = ['n_obs', 'id', 'med', 'std'] # Only used for labelling
+    optional_keys = ['n_obs', 'id', 'med', 'std', 'coverage'] # Only used for labelling
     keys = required_keys + optional_keys
     params = dict.fromkeys(keys)
     if candidate is not None:
@@ -402,6 +402,7 @@ def make_plot(survey, candidate=None, **kwargs):
         params['id']      = candidate['MC_SOURCE_ID']
         params['med']     = candidate['med']
         params['std']     = candidate['std']
+        params['coverage']= candidate['coverage']
     for key in keys:
         try:
             params[key] = kwargs[key]
@@ -411,7 +412,7 @@ def make_plot(survey, candidate=None, **kwargs):
                     raise TypeError('{} parameter required but not specified'.format(key))
                 else:
                     params[key] = -1
-    sig, ra, dec, mod, r, n_model, n_obs, idee, med, std = [params[key] for key in keys]
+    sig, ra, dec, mod, r, n_model, n_obs, idee, med, std, coverage = [params[key] for key in keys]
     field_density = round(n_model/(np.pi * (r*60)**2), 4)
 
     region = simple.survey.Region(survey, ra, dec) 
@@ -467,7 +468,7 @@ def make_plot(survey, candidate=None, **kwargs):
     """
     info_string = r'($\alpha$, $\delta$, $\mu$) = ({:0.2f}, {:0.2f}, {:0.2f})'.format(ra, dec, mod)
     detect_string = r'($\sigma$, $r$, n_obs, n_model) = ({:0.2f}, {:0.2f}, {:0.2f}, {:0.2f})'.format(sig, r*60, n_obs, n_model)
-    stats_string = r'(median ratio, deviation) = ({:0.2f}, {:0.2f})'.format(med, std)
+    stats_string = r'(median ratio, deviation, coverage) = ({:0.2f}, {:0.2f}, {:0.2f})'.format(med, std, coverage)
 
     #plt.suptitle(association_string+'\n' + info_string+'\n' + detect_string, fontsize=24)
     plt.suptitle(info_string+'\n' + detect_string+'\n' + stats_string, fontsize=24)
@@ -492,6 +493,7 @@ if __name__ == '__main__':
     parser.add_argument('--id', type=int, required=False, help='Unique ID')
     parser.add_argument('--med', type=float, required=False, help='Peak to median ratio')
     parser.add_argument('--std', type=float, required=False, help='Standard devation of peak')
+    parser.add_argument('--coverage', type=float, required=False, help='Coverage fraction')
     args = vars(parser.parse_args())
 
     with open(args['config'], 'r') as ymlfile:

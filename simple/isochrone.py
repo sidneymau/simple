@@ -193,4 +193,33 @@ def get_isochrone(base, **kwargs):
             cut = (diffs < np.sqrt(radius**2 + mag1err**2 + mag2err**2))
             return cut
 
+        def simulate(self, abs_mag, distance_modulus=None, **kwargs):
+            """
+            Simulate a set of stellar magnitudes (no uncertainty) for a
+            satellite of a given stellar mass and distance.
+
+            Parameters:
+            -----------
+            abs_mag : the absoulte V-band magnitude of the system
+            distance_modulus : distance modulus of the system (if None takes from isochrone)
+            kwargs : passed to iso.imf.sample
+
+            Returns:
+            --------
+            mag_g, mag_r, mag_i : simulated magnitudes with length stellar_mass/iso.stellar_mass()
+            """
+            def mag_to_mass(m_v):
+                a, b = -2.51758, 4.86721
+                return 10**((m_v-b)/a)
+            stellar_mass = mag_to_mass(abs_mag)
+            if distance_modulus is None: distance_modulus = self.distance_modulus
+            # Total number of stars in system
+            n = int(round(stellar_mass / self.stellar_mass()))
+            f_g = scipy.interpolate.interp1d(self.mass_init, self.data['g']+self.distance_modulus)
+            f_r = scipy.interpolate.interp1d(self.mass_init, self.data['r']+self.distance_modulus)
+            f_i = scipy.interpolate.interp1d(self.mass_init, self.data['i']+self.distance_modulus)
+            mass_init_sample = self.imf.sample(n, np.min(self.mass_init), np.max(self.mass_init), **kwargs)
+            mag_g_sample, mag_r_sample, mag_i_sample = f_g(mass_init_sample), f_r(mass_init_sample), f_i(mass_init_sample) 
+            return mag_g_sample, mag_r_sample, mag_i_sample
+
     return Isochrone3Band(**kwargs)

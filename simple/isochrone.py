@@ -126,8 +126,7 @@ def get_isochrone(base, **kwargs):
             return out
 
 
-        def draw(self, band_1, band_2, **kwargs):
-            ax = plt.gca()
+        def draw(self, ax, band_1, band_2, **kwargs):
             if kwargs.pop('cookie',None):
                 # Broad cookie cutter
                 defaults = dict(alpha=0.5, color='0.5', zorder=0, 

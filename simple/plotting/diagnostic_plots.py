@@ -206,7 +206,8 @@ def cm_plot(ax, region, data, iso, g_radius, type):
     ax.scatter(data[region.survey.mag_1][annulus] - data[region.survey.mag_2][annulus], data[region.survey.mag_1][annulus], c='k', alpha=0.1, edgecolor='none', s=1)
 
     # Plot isochrone
-    ax.plot(iso.color, iso.mag_1 + iso.distance_modulus, c='k', lw=1)
+    #ax.plot(iso.color, iso.mag_1 + iso.distance_modulus, c='k', lw=1)
+    iso.draw(ax, iso.band_1, iso.band_2, c='k', lw=1)
 
     # Plot objects in nbhd
     ax.scatter(data[region.survey.mag_1][nbhd] - data[region.survey.mag_2][nbhd], data[region.survey.mag_1][nbhd], c='g', s=5, label='r < {:.3f}$^\circ$'.format(g_radius))
@@ -255,7 +256,8 @@ def hess_plot(ax, region, data, iso, g_radius):
     ax.set_ylabel('{} (mag)'.format(region.survey.band_1.lower()))
 
     pc = ax.pcolormesh(xbins, ybins, signal, cmap=cmap_gray_mask)
-    ax.plot(iso.color, iso.mag_1 + iso.distance_modulus, lw=2, c='k', zorder=10, label='Isochrone')
+    #ax.plot(iso.color, iso.mag_1 + iso.distance_modulus, lw=2, c='k', zorder=10, label='Isochrone')
+    iso.draw(ax, iso.band_1, iso.band_2, lw=2, c='k', zorder=10, label='Isochrone')
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size = '5%', pad=0)
